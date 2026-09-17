@@ -1,4 +1,4 @@
-import { arbitrum, base, mainnet, optimism, polygon } from 'wagmi/chains'
+import { arbitrum, base, mainnet, optimism, polygon, robinhood } from 'wagmi/chains'
 
 /**
  * Uniswap v4 deployments. Unlike v3, the position manager is not
@@ -48,6 +48,21 @@ export const V4_CHAINS: V4Config[] = [
     poolManager: '0x67366782805870060151383F4BbFF9daB53e5cD6',
     stateView: '0x5eA1bD7974c8A611cBAB0bDCAFcB1D9CC9b3BA5a',
     explorer: 'https://polygon.blockscout.com',
+  },
+  {
+    /**
+     * Robinhood Chain deploys v4 at its own addresses, like it does v3. The
+     * position manager was found from the NFTs an address actually holds, and
+     * cross-checked: its `poolManager()` is the same singleton that emits the
+     * v4 Swap events on this chain. Two StateView contracts point at that
+     * PoolManager (the other is 0x0284cb0b…); both are read-only views, so
+     * either serves.
+     */
+    chainId: robinhood.id,
+    positionManager: '0x58daec3116aae6d93017baaea7749052e8a04fa7',
+    poolManager: '0x8366a39cc670b4001a1121b8f6a443a643e40951',
+    stateView: '0xf3334192d15450cdd385c8b70e03f9a6bd9e673b',
+    explorer: 'https://robinhoodchain.blockscout.com',
   },
   {
     chainId: base.id,

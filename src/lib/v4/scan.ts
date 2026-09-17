@@ -62,7 +62,21 @@ export async function scanChainV4(
   v4: V4Config,
   owner: `0x${string}`,
 ): Promise<Position[]> {
-  const tokenIds = await discoverV4TokenIds(client, v4, owner)
+  return scanV4TokenIds(client, chainConfig, v4, await discoverV4TokenIds(client, v4, owner))
+}
+
+/**
+ * Everything after discovery. Kept separate because the explorer lookup is the
+ * one part that cannot run outside a browser — Robinhood Chain's instance turns
+ * away non-browser clients — so the verification scripts drive this directly
+ * with known token ids.
+ */
+export async function scanV4TokenIds(
+  client: PublicClient,
+  chainConfig: ChainConfig,
+  v4: V4Config,
+  tokenIds: bigint[],
+): Promise<Position[]> {
   if (tokenIds.length === 0) return []
 
   const details = await readAll(

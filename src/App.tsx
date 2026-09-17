@@ -128,7 +128,10 @@ export default function App() {
               {isScanning ? 'Scanning…' : 'Refresh'}
             </button>
           )}
-          <ConnectButton showBalance={false} />
+          {/* No chain switcher: every chain is scanned regardless of which one
+              the wallet is on, and claiming switches to the right one itself.
+              Offering the control would imply it changes what you see. */}
+          <ConnectButton showBalance={false} chainStatus="none" />
         </div>
       </header>
 

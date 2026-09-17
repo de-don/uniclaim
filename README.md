@@ -57,14 +57,17 @@ router action the position manager rejects with `UnsupportedAction`.)
 **v3** — Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast, Robinhood
 Chain.
 
-**v4** — Ethereum, Arbitrum, Optimism, Polygon, Base. v4 is deployed on BNB Chain, Avalanche and
-Blast too, but none of them has a public explorer that can list an address's NFTs without an API
-key, so positions there cannot be discovered and the app says so rather than showing an empty list.
+**v4** — Ethereum, Arbitrum, Optimism, Polygon, Base, Robinhood Chain. v4 is deployed on BNB Chain,
+Avalanche and Blast too, but none of them has a public explorer that can list an address's NFTs
+without an API key, so positions there cannot be discovered and the app says so rather than showing
+an empty list.
 
-Robinhood Chain runs a v4 `PoolManager` (`0x8366a39C…`) but no canonical v4 position-manager NFT was
-found — liquidity there is modified by many bespoke contracts rather than the standard one — and its
-Blockscout instance sits behind a Cloudflare challenge, so discovery would fail regardless. v3 is
-supported there; v4 is not.
+Robinhood Chain also puts v4 at its own addresses. The position manager
+(`0x58daec31…`, `UNI-V4-POSM`) was found from the NFTs an address actually holds and cross-checked
+against the `PoolManager` that emits this chain's v4 Swap events; of the several `StateView`
+contracts deployed there, the two that report that PoolManager are the real ones. Note that its
+Blockscout instance turns away non-browser clients, which is invisible to the app — the browser
+passes — but does mean the discovery step cannot be exercised from a script.
 
 The `NonfungiblePositionManager` address is pinned per chain, but the v3 factory address is read out
 of the manager itself — so a typo in one constant cannot silently redirect the maths at some other
@@ -106,6 +109,14 @@ v4 has no read-only equivalent of `collect`, so `pnpm verify:v4` checks it three
 2. **Fees.** Positions are scanned end to end against live pools.
 3. **Claim encoding.** The batched `modifyLiquidities` call is `eth_call`ed as the owner; a wrong
    action id, parameter layout or currency ordering reverts.
+
+Token ids for these checks are sampled from `nextTokenId` rather than looked up through an
+explorer, so the script tests the maths rather than a third-party service.
+
+Known gap: on some v3 positions the figure shown is 1–3 wei higher than `collect()` pays out. The
+pool accumulates its own `tokensOwed` with a separate floor division per update, and a sum of floors
+can fall below the floor of a sum — but that explanation is not yet confirmed, so it is recorded
+here rather than claimed as understood.
 
 ## Limitations
 

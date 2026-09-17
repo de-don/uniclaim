@@ -1,4 +1,8 @@
 import { useEffect } from 'react'
+import { CHAIN_BY_ID } from '../config/chains'
+import { V4_CHAINS } from '../config/v4'
+
+const V4_CHAIN_NAMES = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name ?? String(v.chainId))
 
 export type InfoTab = 'how' | 'security' | 'faq'
 
@@ -190,8 +194,8 @@ function Faq() {
       a: (
         <p>
           v4 needs a position lookup the contract does not provide, so it works on the chains where
-          a public explorer offers one: Ethereum, Arbitrum, Optimism, Polygon and Base. The other
-          chains still show every v3 position, and the app says which is which.
+          a public explorer offers one: {V4_CHAIN_NAMES.join(', ')}. The other chains still show
+          every v3 position, and the app says which is which.
         </p>
       ),
     },
