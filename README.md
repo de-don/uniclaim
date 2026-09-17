@@ -17,6 +17,14 @@ explained below.
    CORS-enabled source of that list is a public Blockscout instance, so candidate ids come from
    there and are then confirmed against `ownerOf` on chain. The explorer is treated as an untrusted
    hint: it returns numbers, every number is verified, and a wrong answer can only cost a lookup.
+
+   Alternatives that were measured and rejected:
+
+   | Source | Why not |
+   | --- | --- |
+   | `eth_getLogs` over Transfer events | Only Arbitrum's official RPC allows a full-range query. Elsewhere the cap is 2,000–10,000 blocks, or an archive token is required — for Base that is roughly 13,000 requests per scan. |
+   | Revert Finance API | `access-control-allow-origin` is `https://revert.finance`, so a browser on any other origin cannot read the response; the preflight confirms it. The `uniswapv4` route exists, but returned an empty set for an address holding six verified v4 positions, so it would need a server-side proxy *and* would still not answer. |
+   | The Graph, Alchemy, Ankr NFT APIs | All require an API key, which means a key shipped to the browser or a backend to hold it. |
 2. **Computing fees.** The contract's `tokensOwed` goes stale the moment a position is touched, so
    the live figure is derived from pool state:
 
