@@ -16,9 +16,18 @@ function transportFor(chainId: number, rpcUrls: string[]) {
   )
 }
 
+/**
+ * WalletConnect needs a real project id; its API answers 403 to anything else.
+ * Without one, browser-extension wallets still connect but every mobile wallet
+ * silently cannot — worth saying out loud rather than letting it look like the
+ * app is broken.
+ */
+export const walletConnectProjectId = import.meta.env.VITE_WC_PROJECT_ID as string | undefined
+export const hasWalletConnect = Boolean(walletConnectProjectId)
+
 export const config = getDefaultConfig({
   appName: 'UniClaim',
-  projectId: (import.meta.env.VITE_WC_PROJECT_ID as string) || 'uniclaim-local-dev',
+  projectId: walletConnectProjectId || 'uniclaim-local-dev',
   chains: SUPPORTED_CHAINS,
   transports: Object.fromEntries(
     CHAINS.map((c) => [c.chain.id, transportFor(c.chain.id, c.rpcUrls)]),

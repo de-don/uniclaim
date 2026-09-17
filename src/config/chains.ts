@@ -8,6 +8,7 @@ import {
   mainnet,
   optimism,
   polygon,
+  robinhood,
   type Chain,
 } from 'wagmi/chains'
 
@@ -115,6 +116,24 @@ export const CHAINS: ChainConfig[] = [
     positionManager: '0x3d79EdAaBC0EaB6F08ED885C05Fc0B014290D95A',
     llamaKey: 'celo',
     color: '#fcff52',
+  },
+  {
+    /**
+     * Robinhood Chain runs a genuine v3 deployment, but not at the canonical
+     * addresses every other chain reuses: those hold unrelated 2 kB contracts
+     * that answer nothing. The real manager was found by tracing the `sender` of
+     * pool Mint events, and its bytecode matches Ethereum's byte for byte in
+     * length, differing only where constructor immutables are baked in.
+     */
+    chain: robinhood,
+    positionManager: '0x73991a25c818bf1f1128deaab1492d45638de0d3',
+    rpcUrls: [
+      'https://rpc.ordofi.network',
+      'https://rpc.mainnet.chain.robinhood.com',
+      'https://robinhood-rpc.publicnode.com',
+    ],
+    llamaKey: 'robinhood',
+    color: '#00c805',
   },
   {
     chain: blast,

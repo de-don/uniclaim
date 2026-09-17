@@ -4,7 +4,7 @@
  * `collect()` made as the owner. Any drift here is a bug in fees.ts.
  */
 import { createPublicClient, fallback, http, maxUint128, type PublicClient } from 'viem'
-import { arbitrum, base, mainnet, optimism, polygon } from 'viem/chains'
+import { arbitrum, base, mainnet, optimism, polygon, robinhood } from 'viem/chains'
 import { positionManagerAbi } from '../src/abi/positionManager'
 import { CHAINS } from '../src/config/chains'
 import { scanChain } from '../src/lib/scan'
@@ -19,6 +19,7 @@ const TARGETS: [typeof mainnet, bigint[]][] = [
   [base, [5000n, 100000n, 400000n, 900000n, 1600000n]],
   [optimism, [10000n, 200000n, 500000n, 800000n]],
   [polygon, [50000n, 300000n, 700000n, 1200000n]],
+  [robinhood, [1001n, 50000n, 200000n, 400000n, 600000n, 750000n, 820000n]],
 ]
 
 let checked = 0

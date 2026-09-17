@@ -430,3 +430,19 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   text-align: center;
   margin: 28px 0 0;
 }
+
+.landing__warn {
+  color: var(--amber);
+  font-size: 13px;
+  line-height: 1.6;
+  border: 1px solid rgba(226, 160, 63, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 0 0 24px;
+}
+.landing__warn code {
+  background: var(--surface-hi);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+}

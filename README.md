@@ -10,7 +10,7 @@ explained below.
 ## How it works
 
 1. **Finding positions.** For v3: `NonfungiblePositionManager.balanceOf` → `tokenOfOwnerByIndex` →
-   `positions(tokenId)` across 9 chains, all batched through Multicall3.
+   `positions(tokenId)` across 10 chains, all batched through Multicall3.
 
    v4 is not enumerable — its position manager is not ERC721Enumerable, so there is no
    `tokenOfOwnerByIndex` and no contract call that lists what an address holds. The only key-free,
@@ -54,15 +54,29 @@ router action the position manager rejects with `UnsupportedAction`.)
 
 ## Chains
 
-**v3** — Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast.
+**v3** — Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast, Robinhood
+Chain.
 
 **v4** — Ethereum, Arbitrum, Optimism, Polygon, Base. v4 is deployed on BNB Chain, Avalanche and
 Blast too, but none of them has a public explorer that can list an address's NFTs without an API
 key, so positions there cannot be discovered and the app says so rather than showing an empty list.
 
+Robinhood Chain runs a v4 `PoolManager` (`0x8366a39C…`) but no canonical v4 position-manager NFT was
+found — liquidity there is modified by many bespoke contracts rather than the standard one — and its
+Blockscout instance sits behind a Cloudflare challenge, so discovery would fail regardless. v3 is
+supported there; v4 is not.
+
 The `NonfungiblePositionManager` address is pinned per chain, but the v3 factory address is read out
 of the manager itself — so a typo in one constant cannot silently redirect the maths at some other
 pool.
+
+Most chains reuse the canonical `0xC36442b4…` manager address. Robinhood Chain does not: that
+address there holds an unrelated 2 kB contract that answers no calls, and the real deployment lives
+at `0x73991a25…` with its own factory. It was located by tracing the `sender` of v3 pool `Mint`
+events, then confirmed three ways — `name()` returns `Uniswap V3 Positions NFT-V1`,
+`supportsInterface(0x780e9d63)` is true so enumeration works, and the bytecode matches Ethereum's
+byte length exactly, differing only where constructor immutables are baked in. Adding a chain is
+therefore not a matter of assuming the usual address.
 
 ## Running it
 

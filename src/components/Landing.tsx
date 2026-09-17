@@ -1,4 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { CHAINS } from '../config/chains'
+import { hasWalletConnect } from '../wagmi'
 
 const STEPS = [
   {
@@ -7,7 +9,7 @@ const STEPS = [
   },
   {
     title: 'We scan every chain',
-    text: 'Your v3 and v4 positions are read straight from the contracts on 9 chains, and the unclaimed fees are computed from live pool state.',
+    text: `Your v3 and v4 positions are read straight from the contracts on ${CHAINS.length} chains, and the unclaimed fees are computed from live pool state.`,
   },
   {
     title: 'Claim in one transaction',
@@ -46,6 +48,14 @@ export function Landing({ onOpenInfo }: Props) {
       <div className="landing__cta">
         <ConnectButton />
       </div>
+
+      {!hasWalletConnect && (
+        <p className="landing__warn">
+          WalletConnect is not configured on this build, so mobile wallets cannot connect. Browser
+          extension wallets work as normal. Set <code>VITE_WC_PROJECT_ID</code> in{' '}
+          <code>.env</code> to enable the rest.
+        </p>
+      )}
 
       <p className="landing__note">
         Everything runs in your browser. There is no backend, no account, no tracking — and no way
