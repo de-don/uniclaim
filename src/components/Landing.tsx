@@ -2,28 +2,33 @@ import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 const STEPS = [
   {
-    title: 'Подключите кошелёк',
-    text: 'Ничего не подписываете — подключение нужно только чтобы узнать адрес.',
+    title: 'Connect your wallet',
+    text: 'Nothing is signed. Connecting only tells the app which address to look up.',
   },
   {
-    title: 'Мы сканируем все сети',
-    text: 'Читаем ваши Uniswap V3 позиции напрямую из контрактов в 9 сетях и считаем накопленные комиссии.',
+    title: 'We scan every chain',
+    text: 'Your Uniswap positions are read straight from the contracts on 9 chains, and the unclaimed fees are computed from live pool state.',
   },
   {
-    title: 'Собираете одной транзакцией',
-    text: 'Все выбранные позиции одной сети пакуются в один multicall — одна подпись, одна комиссия за газ.',
+    title: 'Claim in one transaction',
+    text: 'Every position you select on a chain is packed into a single batched call — one signature, one gas fee.',
   },
 ]
 
-export function Landing() {
+type Props = {
+  onOpenInfo: (tab: 'how' | 'security' | 'faq') => void
+}
+
+export function Landing({ onOpenInfo }: Props) {
   return (
     <div className="landing">
       <h1 className="landing__title">
-        Соберите комиссии со <span className="accent">всех позиций</span> одной транзакцией
+        Claim fees from <span className="accent">every position</span> in one transaction
       </h1>
       <p className="landing__lede">
-        UniClaim находит все ваши Uniswap V3 позиции, показывает накопленные, но не забранные
-        комиссии, и собирает их пакетом — по одной транзакции на сеть вместо одной на позицию.
+        UniClaim finds all of your Uniswap v3 positions, shows the fees you have earned but never
+        collected, and claims them in a batch — one transaction per chain instead of one per
+        position.
       </p>
 
       <ol className="steps">
@@ -43,9 +48,11 @@ export function Landing() {
       </div>
 
       <p className="landing__note">
-        Приложение полностью клиентское: нет бэкенда, нет аналитики, нет хранения ключей. Комиссии
-        всегда уходят на ваш собственный адрес — контракт Uniswap не позволяет отправить их куда-то
-        ещё.
+        Everything runs in your browser. There is no backend, no account, no tracking — and no way
+        for this app to move your funds.{' '}
+        <button className="link" onClick={() => onOpenInfo('security')}>
+          How that works
+        </button>
       </p>
     </div>
   )

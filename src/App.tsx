@@ -2,6 +2,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useCallback, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ChainGroup } from './components/ChainGroup'
+import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
 import { useClaim } from './hooks/useClaim'
@@ -10,11 +11,18 @@ import { formatUsd } from './lib/format'
 import { MAX_POSITIONS } from './lib/scan'
 import type { Position } from './lib/types'
 
+const MENU: { id: InfoTab; label: string }[] = [
+  { id: 'how', label: 'How it works' },
+  { id: 'security', label: 'Security' },
+  { id: 'faq', label: 'FAQ' },
+]
+
 export default function App() {
   const { address, isConnected } = useAccount()
   const { scans, isScanning, rescan, removePositions } = usePositions(address)
   const { claim, state: claimState } = useClaim()
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [infoTab, setInfoTab] = useState<InfoTab | null>(null)
 
   const groups = useMemo(
     () =>
@@ -32,12 +40,17 @@ export default function App() {
   )
 
   const totalUsd = useMemo(
-    () => allPositions.reduce<number | null>((sum, p) => (p.usd === null || sum === null ? sum : sum + p.usd), 0),
+    () =>
+      allPositions.reduce<number | null>(
+        (sum, p) => (p.usd === null || sum === null ? sum : sum + p.usd),
+        0,
+      ),
     [allPositions],
   )
 
   const failedChains = scans.filter((s) => s.status === 'error')
   const truncated = scans.filter((s) => s.skipped > 0)
+  const v4Count = allPositions.filter((p) => p.version === 'v4').length
 
   const toggle = useCallback((key: string) => {
     setSelected((prev) => {
@@ -74,7 +87,7 @@ export default function App() {
     [claim, removePositions],
   )
 
-  /** Selection can span chains; each chain still needs its own transaction. */
+  /** A selection can span chains, and each chain still needs its own transaction. */
   const claimSelectedEverywhere = useCallback(async () => {
     const byChain = new Map<number, Position[]>()
     for (const position of selectedPositions) {
@@ -92,10 +105,24 @@ export default function App() {
           <span className="brand__mark">◎</span>
           <span className="brand__name">UniClaim</span>
         </div>
+
+        <nav className="menu">
+          {MENU.map((item) => (
+            <button key={item.id} className="menu__item" onClick={() => setInfoTab(item.id)}>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* The full menu does not fit a phone; the panel's own tabs take over from here. */}
+        <button className="menu__compact" onClick={() => setInfoTab('how')} aria-label="About">
+          Info
+        </button>
+
         <div className="topbar__right">
           {isConnected && (
             <button className="btn btn--ghost" onClick={() => void rescan()} disabled={isScanning}>
-              {isScanning ? 'Сканируем…' : 'Обновить'}
+              {isScanning ? 'Scanning…' : 'Refresh'}
             </button>
           )}
           <ConnectButton showBalance={false} />
@@ -104,20 +131,23 @@ export default function App() {
 
       <main className="main">
         {!isConnected ? (
-          <Landing />
+          <Landing onOpenInfo={setInfoTab} />
         ) : (
           <>
             <div className="summary">
               <div>
-                <span className="summary__label">Несобранные комиссии</span>
+                <span className="summary__label">Unclaimed fees</span>
                 <span className="summary__value">{formatUsd(totalUsd)}</span>
               </div>
               <div>
-                <span className="summary__label">Позиций с комиссиями</span>
-                <span className="summary__value">{allPositions.length}</span>
+                <span className="summary__label">Positions with fees</span>
+                <span className="summary__value">
+                  {allPositions.length}
+                  {v4Count > 0 && <span className="summary__sub">{v4Count} on v4</span>}
+                </span>
               </div>
               <div>
-                <span className="summary__label">Сетей</span>
+                <span className="summary__label">Chains</span>
                 <span className="summary__value">{groups.length}</span>
               </div>
             </div>
@@ -125,34 +155,35 @@ export default function App() {
             {isScanning && (
               <div className="scanbar">
                 <div className="scanbar__fill" />
-                <span>
-                  Сканируем {CHAINS.length} сетей — результаты появляются по мере ответа RPC
-                </span>
+                <span>Scanning {CHAINS.length} chains — results appear as each node replies</span>
               </div>
             )}
 
             {truncated.length > 0 && (
               <div className="banner banner--error">
-                В {truncated.map((s) => CHAIN_BY_ID.get(s.chainId)?.chain.name).join(', ')} кошелёк
-                держит больше {MAX_POSITIONS} позиций — просканированы только первые{' '}
-                {MAX_POSITIONS}. Укажите свой RPC, чтобы обойти лимит публичного узла.
+                {truncated.map((s) => CHAIN_BY_ID.get(s.chainId)?.chain.name).join(', ')}: this
+                wallet holds more than {MAX_POSITIONS} positions, so only the first {MAX_POSITIONS}{' '}
+                were scanned. Set your own RPC endpoint to lift the limit.
               </div>
             )}
 
             {failedChains.length > 0 && (
               <div className="banner banner--error">
-                Не удалось опросить:{' '}
+                Could not read{' '}
                 {failedChains
                   .map((s) => CHAIN_BY_ID.get(s.chainId)?.chain.name ?? s.chainId)
                   .join(', ')}
-                . Обычно это лимит публичного RPC — нажмите «Обновить» или задайте свой RPC.
+                . That is usually a public RPC rate limit — hit Refresh, or set your own endpoint.
               </div>
             )}
 
-            {!isScanning && groups.length === 0 && (
+            {!isScanning && groups.length === 0 && failedChains.length === 0 && (
               <div className="empty">
-                <h2>Собирать нечего</h2>
-                <p>Ни одной Uniswap V3 позиции с несобранными комиссиями в поддерживаемых сетях.</p>
+                <h2>Nothing to claim</h2>
+                <p>
+                  No Uniswap position on a supported chain has fees waiting. Positions with a zero
+                  balance are hidden.
+                </p>
               </div>
             )}
 
@@ -175,13 +206,17 @@ export default function App() {
       {selectedPositions.length > 0 && (
         <footer className="actionbar">
           <span>
-            Выбрано {selectedPositions.length} позиций в{' '}
-            {new Set(selectedPositions.map((p) => p.chainId)).size} сетях
+            {selectedPositions.length} selected across{' '}
+            {new Set(selectedPositions.map((p) => p.chainId)).size} chains
           </span>
           <button className="btn btn--primary" onClick={() => void claimSelectedEverywhere()}>
-            Собрать выбранное
+            Claim selected
           </button>
         </footer>
+      )}
+
+      {infoTab && (
+        <InfoPanel tab={infoTab} onTab={setInfoTab} onClose={() => setInfoTab(null)} />
       )}
     </div>
   )

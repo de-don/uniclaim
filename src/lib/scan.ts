@@ -62,7 +62,7 @@ async function readAll(
   }
 
   if (failures > 0 && !options.tolerateFailures) {
-    throw new Error(`${options.label}: ${failures} из ${contracts.length} вызовов не прошли`)
+    throw new Error(`${options.label}: ${failures} of ${contracts.length} calls failed`)
   }
   return out
 }
@@ -275,8 +275,9 @@ export async function scanChain(
     if (fees0 === 0n && fees1 === 0n) return
 
     positions.push({
-      key: `${config.chain.id}-${p.tokenId}`,
+      key: `v3-${config.chain.id}-${p.tokenId}`,
       chainId: config.chain.id,
+      version: 'v3',
       tokenId: p.tokenId,
       pool,
       fee: p.fee,

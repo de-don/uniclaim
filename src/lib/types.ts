@@ -4,9 +4,12 @@ export type TokenInfo = {
   decimals: number
 }
 
+export type ProtocolVersion = 'v3' | 'v4'
+
 export type Position = {
   key: string
   chainId: number
+  version: ProtocolVersion
   tokenId: bigint
   pool: `0x${string}`
   fee: number

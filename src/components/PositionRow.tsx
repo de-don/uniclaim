@@ -13,7 +13,12 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
   return (
     <div className={`row ${selected ? 'row--selected' : ''}`}>
       <label className="row__check">
-        <input type="checkbox" checked={selected} onChange={() => onToggle(position.key)} />
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggle(position.key)}
+          aria-label={`Select position ${position.tokenId}`}
+        />
       </label>
 
       <div className="row__pair">
@@ -21,9 +26,10 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
           {position.token0.symbol} / {position.token1.symbol}
         </span>
         <span className="row__meta">
+          <span className={`tag tag--${position.version}`}>{position.version}</span>
           <span className="tag">{formatFeeTier(position.fee)}</span>
           <span className={`tag ${position.inRange ? 'tag--in' : 'tag--out'}`}>
-            {position.inRange ? 'в диапазоне' : 'вне диапазона'}
+            {position.inRange ? 'in range' : 'out of range'}
           </span>
           <span className="row__id">#{position.tokenId.toString()}</span>
         </span>
@@ -45,7 +51,7 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
       <div className="row__usd">{formatUsd(position.usd)}</div>
 
       <button className="btn btn--ghost" onClick={() => onClaim(position)} disabled={busy}>
-        Собрать
+        Claim
       </button>
     </div>
   )

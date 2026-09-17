@@ -25,8 +25,9 @@ function mock(
   inRange: boolean,
 ): Position {
   return {
-    key: `${chainId}-${tokenId}`,
+    key: `v3-${chainId}-${tokenId}`,
     chainId,
+    version: tokenId % 2n === 0n ? 'v4' : 'v3',
     tokenId,
     pool: '0x0000000000000000000000000000000000000001',
     fee,
@@ -58,7 +59,7 @@ const MOCK: Record<number, Position[]> = {
 }
 
 export function Preview() {
-  const [selected, setSelected] = useState<Set<string>>(new Set(['1-498211']))
+  const [selected, setSelected] = useState<Set<string>>(new Set(['v3-1-498211']))
 
   return (
     <div className="main">

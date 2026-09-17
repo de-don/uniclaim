@@ -37,9 +37,9 @@ export function ChainGroup({
     ['switching', 'signing', 'pending'].includes(claimState.status)
 
   const explorer = config.chain.blockExplorers?.default.url
-
   const batch = claimState.batch
-  const progress = batch && batch.total > 1 ? ` ${batch.index} из ${batch.total}` : ''
+  const progress = batch && batch.total > 1 ? ` ${batch.index} of ${batch.total}` : ''
+  const txCount = batchCount(positions.length)
 
   return (
     <section className="group">
@@ -49,21 +49,22 @@ export function ChainGroup({
             type="checkbox"
             checked={allSelected}
             onChange={(e) => onToggleChain(chainId, e.target.checked)}
+            aria-label={`Select all positions on ${config.chain.name}`}
           />
         </label>
 
         <span className="group__dot" style={{ background: config.color }} />
         <h2 className="group__name">{config.chain.name}</h2>
         <span className="group__count">
-          {positions.length} {positions.length === 1 ? 'позиция' : 'позиций'}
-          {batchCount(positions.length) > 1 && ` · ${batchCount(positions.length)} транзакции`}
+          {positions.length} {positions.length === 1 ? 'position' : 'positions'}
+          {txCount > 1 && ` · ${txCount} transactions`}
         </span>
         <span className="group__usd">{formatUsd(totalUsd)}</span>
 
         <div className="group__actions">
           {selectedHere.length > 0 && selectedHere.length < positions.length && (
             <button className="btn" onClick={() => onClaim(chainId, selectedHere)} disabled={busy}>
-              Собрать выбранное ({selectedHere.length})
+              Claim selected ({selectedHere.length})
             </button>
           )}
           <button
@@ -71,27 +72,26 @@ export function ChainGroup({
             onClick={() => onClaim(chainId, positions)}
             disabled={busy}
             title={
-              batchCount(positions.length) > 1
-                ? `${batchCount(positions.length)} транзакции — столько позиций не помещается в одну по газу`
-                : 'Одна транзакция на все позиции'
+              txCount > 1
+                ? `Sent as ${txCount} transactions — this many positions will not fit in one block`
+                : 'A single transaction for every position'
             }
           >
-            {busy ? 'Отправка…' : `Собрать всё (${positions.length})`}
+            {busy ? 'Sending…' : `Claim all (${positions.length})`}
           </button>
         </div>
       </header>
 
       {claimState.chainId === chainId && claimState.status !== 'idle' && (
         <div className={`banner banner--${claimState.status}`}>
-          {claimState.status === 'switching' && 'Переключите сеть в кошельке…'}
-          {claimState.status === 'signing' &&
-            `Подтвердите транзакцию в кошельке${progress}…`}
-          {claimState.status === 'pending' && `Транзакция${progress} в сети, ждём подтверждения…`}
-          {claimState.status === 'success' && 'Комиссии собраны.'}
-          {claimState.status === 'error' && `Ошибка: ${claimState.error}`}
+          {claimState.status === 'switching' && 'Switch network in your wallet…'}
+          {claimState.status === 'signing' && `Confirm transaction${progress} in your wallet…`}
+          {claimState.status === 'pending' && `Transaction${progress} sent, waiting for it to land…`}
+          {claimState.status === 'success' && 'Fees claimed.'}
+          {claimState.status === 'error' && `Failed: ${claimState.error}`}
           {claimState.hash && explorer && (
             <a href={`${explorer}/tx/${claimState.hash}`} target="_blank" rel="noreferrer">
-              Открыть в эксплорере
+              View on explorer
             </a>
           )}
         </div>
