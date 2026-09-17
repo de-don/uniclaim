@@ -69,12 +69,15 @@ export function usePositions(owner: `0x${string}` | undefined) {
   }, [owner, update])
 
   useEffect(() => {
-    if (!owner) {
-      setScans(initialScans())
-      setIsScanning(false)
-      runId.current++
-      return
-    }
+    // Bumping the run id abandons any scan still in flight for a previous
+    // address; a disconnected wallet needs no state reset because the returned
+    // values are derived from `owner` below.
+    runId.current++
+    if (!owner) return
+    // Kicking off the scan flips every chain to "loading" synchronously. That is
+    // the point: this effect exists to synchronize with an external system (the
+    // RPCs), which is exactly the case the rule carves out.
+    // oxlint-disable-next-line react/set-state-in-effect
     void scan()
   }, [owner, scan])
 
@@ -84,5 +87,10 @@ export function usePositions(owner: `0x${string}` | undefined) {
     )
   }, [])
 
-  return { scans, isScanning, rescan: scan, removePositions }
+  return {
+    scans: owner ? scans : initialScans(),
+    isScanning: owner ? isScanning : false,
+    rescan: scan,
+    removePositions,
+  }
 }
