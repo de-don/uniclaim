@@ -10,6 +10,10 @@ type Props = {
 }
 
 export function PositionRow({ position, selected, onToggle, onClaim, busy }: Props) {
+  // A v4 pool may route through a hook contract; worth surfacing, since it is
+  // the one thing that can make an otherwise ordinary pool behave differently.
+  const hasHook = Boolean(position.hooks && BigInt(position.hooks) !== 0n)
+
   return (
     <div className={`row ${selected ? 'row--selected' : ''}`}>
       <label className="row__check">
@@ -31,6 +35,11 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
           <span className={`tag ${position.inRange ? 'tag--in' : 'tag--out'}`}>
             {position.inRange ? 'in range' : 'out of range'}
           </span>
+          {hasHook && (
+            <span className="tag tag--hook" title={`Pool hook ${position.hooks}`}>
+              hook
+            </span>
+          )}
           <span className="row__id">#{position.tokenId.toString()}</span>
         </span>
       </div>

@@ -342,10 +342,11 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 14px;
   overflow-x: auto;
-  font-size: 12.5px;
-  line-height: 1.6;
+  /* Sized so the longest formula line fits the panel without scrolling. */
+  font-size: 11px;
+  line-height: 1.65;
   color: var(--text);
   margin: 0 0 14px;
 }
@@ -411,4 +412,21 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 @media (max-width: 720px) {
   .panel { width: 100%; border-left: none; }
   .panel__body { padding: 18px 16px; }
+}
+
+.tag--hook { color: #64d2ff; border-color: rgba(100, 210, 255, 0.4); }
+
+.banner--warn {
+  color: var(--amber);
+  border: 1px solid rgba(226, 160, 63, 0.35);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.footnote {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  margin: 28px 0 0;
 }

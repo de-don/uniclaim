@@ -23,6 +23,13 @@ function HowItWorks() {
         address owns, so the app walks that list directly on chain — no indexer, no API key, nothing
         between you and the contract.
       </p>
+      <p>
+        v4 is not enumerable: its position manager deliberately omits that list, so no amount of
+        contract reading will tell you which positions an address holds. Candidate ids therefore
+        come from a public block explorer, and each one is then checked against <code>ownerOf</code>{' '}
+        on chain before it is shown. The explorer is a hint, never an authority — see the Security
+        section for why a wrong answer from it is harmless.
+      </p>
 
       <h3>2 · Computing what you are owed</h3>
       <p>
@@ -31,8 +38,11 @@ function HowItWorks() {
         same way the contracts do:
       </p>
       <pre>
-{`feeGrowthInside = feeGrowthGlobal − feeGrowthBelow − feeGrowthAbove
-fees = tokensOwed + liquidity × (feeGrowthInside − feeGrowthInsideLast) / 2¹²⁸`}
+{`feeGrowthInside =
+    feeGrowthGlobal − feeGrowthBelow − feeGrowthAbove
+
+fees = tokensOwed
+     + liquidity × (feeGrowthInside − feeGrowthInsideLast) / 2¹²⁸`}
       </pre>
       <p>
         Uniswap lets those accumulators overflow on purpose, so every subtraction is done modulo
@@ -43,9 +53,12 @@ fees = tokensOwed + liquidity × (feeGrowthInside − feeGrowthInsideLast) / 2¹
 
       <h3>3 · Claiming in one transaction</h3>
       <p>
-        Each claim you select is encoded as a call and the whole set is submitted together through
-        the position manager's own <code>multicall</code>. One signature, one gas fee, however many
-        positions. Very large batches are split so a transaction cannot exceed the block gas limit.
+        Each claim you select is encoded and the whole set is submitted together: through the
+        position manager's own <code>multicall</code> on v3, and as a single unlock on v4, where
+        fees are realised by decreasing liquidity by zero and then closing each currency. One
+        signature, one gas fee, however many positions. Very large batches are split so a
+        transaction cannot exceed the block gas limit, and a selection that spans both protocol
+        versions needs one transaction each.
       </p>
     </div>
   )
@@ -56,9 +69,10 @@ function Security() {
     <div className="prose">
       <h3>The app cannot take your money</h3>
       <p>
-        This is not a promise about intentions — it is a property of the contracts. A claim pays out
-        to the position's own owner. There is no recipient field for this app to point somewhere
-        else, so the funds can only ever land in your wallet.
+        This is not a promise about intentions — it is a property of the contracts. On v3 a claim
+        pays out to the position's own owner. On v4 the app closes each currency with an action that
+        credits whoever sent the transaction. Neither path takes a recipient this app could point
+        somewhere else, so the funds can only ever land in your wallet.
       </p>
 
       <h3>No token approvals, ever</h3>
@@ -83,6 +97,16 @@ function Security() {
         so a typo cannot silently redirect the maths at some other pool. The source is open — read
         it, or run it yourself.
       </p>
+
+      <h3>What the v4 explorer lookup can and cannot do</h3>
+      <p>
+        For v4 the app has to ask an explorer which position ids you hold, because the contract
+        refuses to say. That answer is a list of numbers and nothing else. Each number is checked
+        against <code>ownerOf</code> on chain and discarded unless it really is yours, and every
+        figure shown for it is read from the pool, not from the explorer. The worst a bad answer can
+        do is hide a position of yours or waste a lookup on one that is not — it cannot show you
+        someone else's position, inflate a balance, or change where a claim pays out.
+      </p>
     </div>
   )
 }
@@ -99,7 +123,7 @@ function Faq() {
           </p>
           <p>
             Being honest about the exceptions: a browser page cannot read a blockchain by itself, so
-            two kinds of request leave your machine, and both carry only public data.
+            three kinds of request leave your machine, and all of them carry only public data.
           </p>
           <ul>
             <li>
@@ -109,6 +133,12 @@ function Faq() {
             <li>
               <strong>DefiLlama</strong> — token prices, so fees can be shown in dollars. It receives
               token addresses only, never your wallet.
+            </li>
+            <li>
+              <strong>A public block explorer</strong> — for v4 only, and only to ask which position
+              ids an address holds, because the v4 contract cannot be asked directly. Every id that
+              comes back is verified on chain, so a wrong or hostile answer cannot do more than waste
+              a lookup.
             </li>
           </ul>
         </>
@@ -139,7 +169,8 @@ function Faq() {
       a: (
         <p>
           A v3 pool holds wrapped ETH, and that is what a claim pays out. Unwrapping would mean an
-          extra step inside the same transaction; for now you can unwrap in any wallet or DEX.
+          extra step inside the same transaction; for now you can unwrap in any wallet or DEX. v4
+          pools that use native ETH pay out native ETH, with nothing to unwrap.
         </p>
       ),
     },
@@ -151,6 +182,26 @@ function Faq() {
           showing an empty list, because "no positions" and "we could not check" are very different
           answers. Press Refresh, or set your own endpoint with{' '}
           <code>VITE_RPC_&lt;chainId&gt;</code>.
+        </p>
+      ),
+    },
+    {
+      q: 'Are my v4 positions supported everywhere?',
+      a: (
+        <p>
+          v4 needs a position lookup the contract does not provide, so it works on the chains where
+          a public explorer offers one: Ethereum, Arbitrum, Optimism, Polygon and Base. The other
+          chains still show every v3 position, and the app says which is which.
+        </p>
+      ),
+    },
+    {
+      q: 'What does the "hook" label on a position mean?',
+      a: (
+        <p>
+          v4 pools can attach a hook contract that runs custom logic around pool operations. It does
+          not change how fees are claimed here, but it is worth knowing which of your pools has one,
+          so the label is shown when a pool is hooked.
         </p>
       ),
     },

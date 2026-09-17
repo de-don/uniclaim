@@ -1,14 +1,22 @@
 # UniClaim
 
-Claim the unclaimed fees from **every** Uniswap v3 position you own — one transaction per chain.
+Claim the unclaimed fees from **every** Uniswap v3 and v4 position you own — one transaction per
+chain.
 
-The app is entirely client-side: no backend, no indexer, no API keys. Everything is read straight
-from the contracts over public RPC endpoints.
+The app is entirely client-side: no backend, no account, no API keys. Almost everything is read
+straight from the contracts over public RPC endpoints; the one exception is v4 position discovery,
+explained below.
 
 ## How it works
 
-1. **Finding positions.** `NonfungiblePositionManager.balanceOf` → `tokenOfOwnerByIndex` →
-   `positions(tokenId)` for each of 9 chains, all batched through Multicall3.
+1. **Finding positions.** For v3: `NonfungiblePositionManager.balanceOf` → `tokenOfOwnerByIndex` →
+   `positions(tokenId)` across 9 chains, all batched through Multicall3.
+
+   v4 is not enumerable — its position manager is not ERC721Enumerable, so there is no
+   `tokenOfOwnerByIndex` and no contract call that lists what an address holds. The only key-free,
+   CORS-enabled source of that list is a public Blockscout instance, so candidate ids come from
+   there and are then confirmed against `ownerOf` on chain. The explorer is treated as an untrusted
+   hint: it returns numbers, every number is verified, and a wrong answer can only cost a lookup.
 2. **Computing fees.** The contract's `tokensOwed` goes stale the moment a position is touched, so
    the live figure is derived from pool state:
 
@@ -21,18 +29,32 @@ from the contracts over public RPC endpoints.
    done modulo 2²⁵⁶ — see `src/lib/fees.ts`. The upside of this approach is that every call is a
    `view`, so the whole scan batches through Multicall3, unlike an `eth_call` of `collect()` which
    has to come from the owner.
-3. **Claiming.** The selected `collect()` calls are encoded into a `bytes[]` and submitted as a
-   single `NonfungiblePositionManager.multicall` — one signature, one gas fee.
+   For v4, `feeGrowthInside` is available directly from the `StateView` periphery contract, so the
+   tick walk is unnecessary and only the delta against the position's checkpoint remains. v4 keeps
+   no `tokensOwed`.
 
-The recipient is always the owner's own address: the Uniswap contract offers no way to send the
-fees anywhere else.
+3. **Claiming.** On v3 the selected `collect()` calls are encoded into a `bytes[]` and submitted as
+   a single `NonfungiblePositionManager.multicall`. On v4 there is no `collect`: fees are realised
+   by decreasing liquidity by zero and then closing each currency, all inside one `modifyLiquidities`
+   unlock — one DECREASE_LIQUIDITY per position, then one CLOSE_CURRENCY per distinct currency.
+   Closing per currency rather than per pool matters, since two positions sharing a token would
+   otherwise try to withdraw the same credit twice.
+
+Neither path takes a recipient this app could redirect: v3 `collect` pays the position's owner, and
+v4's CLOSE_CURRENCY credits the transaction sender. (`TAKE_ALL`, the obvious v4 candidate, is a
+router action the position manager rejects with `UnsupportedAction`.)
 
 ## Chains
 
-Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast.
+**v3** — Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast.
 
-The `NonfungiblePositionManager` address is pinned per chain, but the factory address is read out of
-the manager itself — so a typo in one constant cannot silently redirect the maths at some other pool.
+**v4** — Ethereum, Arbitrum, Optimism, Polygon, Base. v4 is deployed on BNB Chain, Avalanche and
+Blast too, but none of them has a public explorer that can list an address's NFTs without an API
+key, so positions there cannot be discovered and the app says so rather than showing an empty list.
+
+The `NonfungiblePositionManager` address is pinned per chain, but the v3 factory address is read out
+of the manager itself — so a typo in one constant cannot silently redirect the maths at some other
+pool.
 
 ## Running it
 
@@ -44,23 +66,35 @@ pnpm dev
 
 ## Verifying the maths
 
-`pnpm verify` checks the computed fees against ground truth: for every position it finds, it
-`eth_call`s `collect()` as the owner and requires a wei-exact match. The script covers real wallets
-on 5 chains.
-
 ```bash
-pnpm verify
-pnpm check:rpcs   # probe the bundled public endpoints with a real Multicall3 call
+pnpm verify        # v3: computed fees vs. the chain itself
+pnpm verify:v4     # v4: decoding, fees and claim encoding
+pnpm check:rpcs    # probe the bundled public endpoints with a real Multicall3 call
 ```
+
+`pnpm verify` checks v3 fees against ground truth: for every position it finds, it `eth_call`s
+`collect()` as the owner and requires a wei-exact match, across real wallets on 5 chains.
+
+v4 has no read-only equivalent of `collect`, so `pnpm verify:v4` checks it three other ways:
+
+1. **Decoding.** `getPositionLiquidity(tokenId)` from the position manager must equal the liquidity
+   the pool reports for `(poolId, manager, ticks, salt)`. That equality only holds if the pool id,
+   the 24-bit tick unpacking and the salt convention are all correct, so one comparison covers all
+   three.
+2. **Fees.** Positions are scanned end to end against live pools.
+3. **Claim encoding.** The batched `modifyLiquidities` call is `eth_call`ed as the owner; a wrong
+   action id, parameter layout or currency ordering reverts.
 
 ## Limitations
 
-- **v3 only.** v4 support is in progress. v2 has no separate fees — they are reinvested into the LP
-  token and cannot be claimed without withdrawing liquidity.
-- **Fees arrive as WETH.** `collect` pays out WETH rather than native ETH; unwrapping would need a
-  separate `unwrapWETH9` inside the same multicall.
+- **No v2.** v2 has no separate fees — they are reinvested into the LP token and cannot be claimed
+  without withdrawing liquidity.
+- **v4 discovery needs an explorer.** See the chain list above; without one, a chain shows v3 only.
+- **v3 fees arrive as WETH.** `collect` pays out WETH rather than native ETH; unwrapping would need
+  a separate `unwrapWETH9` inside the same multicall. v4 pools using native ETH pay out native ETH.
 - **Gas batching.** More than `MAX_PER_TX` (25) positions on one chain will not fit in a single
-  transaction, so they are sent as consecutive batches.
+  transaction, so they are sent as consecutive batches. A selection spanning both v3 and v4 also
+  needs one transaction per protocol.
 - **Public RPCs.** A wallet with more than 400 positions on one chain is scanned partially — set
   your own endpoint via `VITE_RPC_<chainId>`.
 
@@ -68,14 +102,17 @@ pnpm check:rpcs   # probe the bundled public endpoints with a real Multicall3 ca
 
 ```
 src/
-  abi/           position manager, factory, pool and ERC-20 ABIs
-  config/        chains, manager addresses, vetted public RPC lists
-  lib/fees.ts    fee maths (wraparound arithmetic)
-  lib/scan.ts    per-chain position scanner
-  lib/prices.ts  DefiLlama prices (no key) for USD estimates
-  hooks/         all-chain scanning, claiming
-  components/    landing, chain group, position row, info panel
+  abi/             v3 and v4 contract ABIs
+  config/          chains, contract addresses, vetted public RPC lists
+  lib/fees.ts      fee maths (wraparound arithmetic), shared by both versions
+  lib/multicall.ts chunked batching that surfaces RPC failures instead of hiding them
+  lib/scan.ts      v3 position scanner
+  lib/v4/          v4 discovery, scanner and claim encoding
+  lib/prices.ts    DefiLlama prices (no key) for USD estimates
+  hooks/           all-chain scanning, claiming
+  components/      landing, chain group, position row, info panel
 scripts/
-  verify-fees.ts ground-truth check against the chain
-  check-rpcs.ts  public endpoint probe
+  verify-fees.ts   v3 ground-truth check against the chain
+  verify-v4.ts     v4 decoding, fee and claim-encoding checks
+  check-rpcs.ts    public endpoint probe
 ```

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getPublicClient } from 'wagmi/actions'
 import type { PublicClient } from 'viem'
 import { CHAINS } from '../config/chains'
+import { V4_BY_CHAIN } from '../config/v4'
 import { fetchPrices, positionUsd } from '../lib/prices'
 import { scanChain } from '../lib/scan'
+import { scanChainV4 } from '../lib/v4/scan'
 import type { ChainScan, Position } from '../lib/types'
 import { config } from '../wagmi'
 
@@ -34,21 +36,46 @@ export function usePositions(owner: `0x${string}` | undefined) {
 
     const all = await Promise.all(
       CHAINS.map(async (chainConfig) => {
-        try {
-          const client = getPublicClient(config, { chainId: chainConfig.chain.id })
-          if (!client) throw new Error('No RPC client for this chain')
-          const { positions, skipped } = await scanChain(client as PublicClient, chainConfig, owner)
-          if (runId.current === currentRun) {
-            update(chainConfig.chain.id, { status: 'done', positions, skipped })
-          }
-          return positions
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          if (runId.current === currentRun) {
-            update(chainConfig.chain.id, { status: 'error', error: message, positions: [], skipped: 0 })
-          }
+        const chainId = chainConfig.chain.id
+        const v4 = V4_BY_CHAIN.get(chainId)
+
+        const client = getPublicClient(config, { chainId }) as PublicClient | undefined
+        if (!client) {
+          update(chainId, { status: 'error', error: 'No RPC client for this chain', skipped: 0 })
           return [] as Position[]
         }
+
+        // v3 and v4 are independent lookups; one failing must not hide the other.
+        const [v3Result, v4Result] = await Promise.allSettled([
+          scanChain(client, chainConfig, owner),
+          v4 ? scanChainV4(client, chainConfig, v4, owner) : Promise.resolve([] as Position[]),
+        ])
+
+        if (runId.current !== currentRun) return [] as Position[]
+
+        const v4Positions = v4Result.status === 'fulfilled' ? v4Result.value : []
+        const v4Error =
+          v4Result.status === 'rejected' ? describe(v4Result.reason) : undefined
+
+        if (v3Result.status === 'rejected') {
+          update(chainId, {
+            status: v4Positions.length > 0 ? 'done' : 'error',
+            error: describe(v3Result.reason),
+            positions: v4Positions,
+            skipped: 0,
+            v4Error,
+          })
+          return v4Positions
+        }
+
+        const positions = [...v3Result.value.positions, ...v4Positions]
+        update(chainId, {
+          status: 'done',
+          positions,
+          skipped: v3Result.value.skipped,
+          v4Error,
+        })
+        return positions
       }),
     )
 
@@ -93,4 +120,8 @@ export function usePositions(owner: `0x${string}` | undefined) {
     rescan: scan,
     removePositions,
   }
+}
+
+function describe(reason: unknown): string {
+  return reason instanceof Error ? reason.message : String(reason)
 }

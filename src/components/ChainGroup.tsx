@@ -39,7 +39,16 @@ export function ChainGroup({
   const explorer = config.chain.blockExplorers?.default.url
   const batch = claimState.batch
   const progress = batch && batch.total > 1 ? ` ${batch.index} of ${batch.total}` : ''
-  const txCount = batchCount(positions.length)
+  const txCount = batchCount(positions)
+  // Two different reasons produce more than one transaction, and saying "gas"
+  // when the real cause is the v3/v4 split would just be wrong.
+  const versions = new Set(positions.map((p) => p.version))
+  const txReason =
+    txCount === 1
+      ? 'A single transaction for every position'
+      : versions.size > 1 && txCount === versions.size
+        ? 'v3 and v4 are separate contracts, so each needs its own transaction'
+        : `Sent as ${txCount} transactions — this many positions will not fit in one block`
 
   return (
     <section className="group">
@@ -71,11 +80,7 @@ export function ChainGroup({
             className="btn btn--primary"
             onClick={() => onClaim(chainId, positions)}
             disabled={busy}
-            title={
-              txCount > 1
-                ? `Sent as ${txCount} transactions — this many positions will not fit in one block`
-                : 'A single transaction for every position'
-            }
+            title={txReason}
           >
             {busy ? 'Sending…' : `Claim all (${positions.length})`}
           </button>

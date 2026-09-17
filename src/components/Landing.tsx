@@ -7,7 +7,7 @@ const STEPS = [
   },
   {
     title: 'We scan every chain',
-    text: 'Your Uniswap positions are read straight from the contracts on 9 chains, and the unclaimed fees are computed from live pool state.',
+    text: 'Your v3 and v4 positions are read straight from the contracts on 9 chains, and the unclaimed fees are computed from live pool state.',
   },
   {
     title: 'Claim in one transaction',
@@ -26,8 +26,8 @@ export function Landing({ onOpenInfo }: Props) {
         Claim fees from <span className="accent">every position</span> in one transaction
       </h1>
       <p className="landing__lede">
-        UniClaim finds all of your Uniswap v3 positions, shows the fees you have earned but never
-        collected, and claims them in a batch — one transaction per chain instead of one per
+        UniClaim finds all of your Uniswap v3 and v4 positions, shows the fees you have earned but
+        never collected, and claims them in a batch — one transaction per chain instead of one per
         position.
       </p>
 

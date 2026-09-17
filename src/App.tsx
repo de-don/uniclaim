@@ -9,6 +9,7 @@ import { useClaim } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
 import { formatUsd } from './lib/format'
 import { MAX_POSITIONS } from './lib/scan'
+import { V4_CHAINS } from './config/v4'
 import type { Position } from './lib/types'
 
 const MENU: { id: InfoTab; label: string }[] = [
@@ -51,6 +52,8 @@ export default function App() {
   const failedChains = scans.filter((s) => s.status === 'error')
   const truncated = scans.filter((s) => s.skipped > 0)
   const v4Count = allPositions.filter((p) => p.version === 'v4').length
+  const v4Failed = scans.filter((s) => s.v4Error)
+  const v4ChainNames = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name).filter(Boolean)
 
   const toggle = useCallback((key: string) => {
     setSelected((prev) => {
@@ -167,6 +170,14 @@ export default function App() {
               </div>
             )}
 
+            {v4Failed.length > 0 && (
+              <div className="banner banner--warn">
+                v4 lookup unavailable on{' '}
+                {v4Failed.map((s) => CHAIN_BY_ID.get(s.chainId)?.chain.name).join(', ')} — the
+                explorer that lists v4 positions did not answer. v3 results below are unaffected.
+              </div>
+            )}
+
             {failedChains.length > 0 && (
               <div className="banner banner--error">
                 Could not read{' '}
@@ -200,6 +211,16 @@ export default function App() {
               />
             ))}
           </>
+        )}
+        {isConnected && !isScanning && (
+          <p className="footnote">
+            v4 positions are scanned on {v4ChainNames.join(', ')}. Everywhere else only v3 exists in
+            a form this app can enumerate — see{' '}
+            <button className="link" onClick={() => setInfoTab('faq')}>
+              the FAQ
+            </button>
+            .
+          </p>
         )}
       </main>
 

@@ -23,11 +23,14 @@ function mock(
   fees1: bigint,
   usd: number | null,
   inRange: boolean,
+  version: Position['version'] = 'v3',
+  hooks?: `0x${string}`,
 ): Position {
   return {
-    key: `v3-${chainId}-${tokenId}`,
+    key: `${version}-${chainId}-${tokenId}`,
     chainId,
-    version: tokenId % 2n === 0n ? 'v4' : 'v3',
+    version,
+    hooks,
     tokenId,
     pool: '0x0000000000000000000000000000000000000001',
     fee,
@@ -47,6 +50,7 @@ function mock(
 const WETH = token('WETH', 18, '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
 const USDC = token('USDC', 6, '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')
 const WBTC = token('WBTC', 8, '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599')
+const ETH = token('ETH', 18, '0x0000000000000000000000000000000000000000')
 
 const MOCK: Record<number, Position[]> = {
   1: [
@@ -55,6 +59,34 @@ const MOCK: Record<number, Position[]> = {
   ],
   42161: [
     mock(42161, 3_112_004n, USDC, WETH, 500, 88_240_000n, 12_119_338_201_991_100n, 132.05, true),
+    mock(
+      42161,
+      208_173n,
+      ETH,
+      USDC,
+      3000,
+      9_140_338_201_991_100n,
+      431_915n,
+      23.04,
+      true,
+      'v4',
+      '0x0000000000000000000000000000000000000000',
+    ),
+  ],
+  10: [
+    mock(
+      10,
+      28_952n,
+      ETH,
+      USDC,
+      500,
+      317_000_000_000_000n,
+      1_230_795n,
+      2.01,
+      false,
+      'v4',
+      '0x3Fa9dAe3C4B1d2A1eF4c3C1bD9Ee1e3C9Ba8C088',
+    ),
   ],
 }
 

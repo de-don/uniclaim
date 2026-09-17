@@ -3,20 +3,22 @@ import { encodeFunctionData, maxUint128 } from 'viem'
 import { useAccount, useConfig, useWriteContract } from 'wagmi'
 import { switchChain, waitForTransactionReceipt } from 'wagmi/actions'
 import { positionManagerAbi } from '../abi/positionManager'
+import { v4PositionManagerAbi } from '../abi/v4'
 import { CHAIN_BY_ID } from '../config/chains'
-import type { Position } from '../lib/types'
+import { V4_BY_CHAIN } from '../config/v4'
+import { encodeV4Claim } from '../lib/v4/claim'
+import type { Position, ProtocolVersion } from '../lib/types'
 
 /**
- * Every `collect()` moves up to two ERC-20 balances, so a batch costs roughly
- * 100–200k gas per position. Past this count a single transaction risks hitting
- * the block gas limit, so a large selection is split into sequential batches —
+ * Every claim moves up to two token balances per position, so a batch costs
+ * roughly 100–200k gas each. Past this count a single transaction risks the
+ * block gas limit, so a large selection is split into sequential batches —
  * still far fewer transactions than claiming one position at a time.
  */
 export const MAX_PER_TX = 25
 
-export function batchCount(positionCount: number): number {
-  return Math.ceil(positionCount / MAX_PER_TX)
-}
+/** Seconds a v4 claim stays valid once signed. */
+const DEADLINE_WINDOW = 600n
 
 export type ClaimState = {
   chainId: number | null
@@ -34,10 +36,22 @@ function chunk<T>(items: T[], size: number): T[][] {
 }
 
 /**
- * Batches N `collect()` calls into one transaction through the position
- * manager's own `multicall`, so a single signature drains every selected
- * position on that chain.
+ * v3 and v4 are separate contracts with separate entry points, so a selection
+ * spanning both needs one transaction per protocol on top of the gas split.
  */
+export function planBatches(positions: Position[]): { version: ProtocolVersion; batch: Position[] }[] {
+  const plan: { version: ProtocolVersion; batch: Position[] }[] = []
+  for (const version of ['v3', 'v4'] as const) {
+    const forVersion = positions.filter((p) => p.version === version)
+    for (const batch of chunk(forVersion, MAX_PER_TX)) plan.push({ version, batch })
+  }
+  return plan
+}
+
+export function batchCount(positions: Position[]): number {
+  return planBatches(positions).length
+}
+
 export function useClaim() {
   const { address } = useAccount()
   const wagmiConfig = useConfig()
@@ -52,39 +66,53 @@ export function useClaim() {
       const chainConfig = CHAIN_BY_ID.get(chainId)
       if (!chainConfig) return []
 
-      const batches = chunk(positions, MAX_PER_TX)
+      const plan = planBatches(positions)
       const claimed: Position[] = []
 
       try {
         setState({ chainId, status: 'switching' })
         await switchChain(wagmiConfig, { chainId })
 
-        for (const [index, batch] of batches.entries()) {
-          const progress = { index: index + 1, total: batches.length }
-
-          const calls = batch.map((position) =>
-            encodeFunctionData({
-              abi: positionManagerAbi,
-              functionName: 'collect',
-              args: [
-                {
-                  tokenId: position.tokenId,
-                  recipient: address,
-                  amount0Max: maxUint128,
-                  amount1Max: maxUint128,
-                },
-              ],
-            }),
-          )
-
+        for (const [index, { version, batch }] of plan.entries()) {
+          const progress = { index: index + 1, total: plan.length }
           setState({ chainId, status: 'signing', batch: progress })
-          const hash = await writeContractAsync({
-            address: chainConfig.positionManager,
-            abi: positionManagerAbi,
-            functionName: 'multicall',
-            args: [calls],
-            chainId,
-          })
+
+          let hash: `0x${string}`
+          if (version === 'v3') {
+            // The position manager's own multicall: N collect() calls, one tx.
+            const calls = batch.map((position) =>
+              encodeFunctionData({
+                abi: positionManagerAbi,
+                functionName: 'collect',
+                args: [
+                  {
+                    tokenId: position.tokenId,
+                    recipient: address,
+                    amount0Max: maxUint128,
+                    amount1Max: maxUint128,
+                  },
+                ],
+              }),
+            )
+            hash = await writeContractAsync({
+              address: chainConfig.positionManager,
+              abi: positionManagerAbi,
+              functionName: 'multicall',
+              args: [calls],
+              chainId,
+            })
+          } else {
+            const v4 = V4_BY_CHAIN.get(chainId)
+            if (!v4) throw new Error('v4 is not available on this chain')
+            const deadline = BigInt(Math.floor(Date.now() / 1000)) + DEADLINE_WINDOW
+            hash = await writeContractAsync({
+              address: v4.positionManager,
+              abi: v4PositionManagerAbi,
+              functionName: 'modifyLiquidities',
+              args: [encodeV4Claim(batch), deadline],
+              chainId,
+            })
+          }
 
           setState({ chainId, status: 'pending', hash, batch: progress })
           await waitForTransactionReceipt(wagmiConfig, { hash, chainId })
