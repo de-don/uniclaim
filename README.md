@@ -294,6 +294,10 @@ nothing needs filling in by hand:
   microphone, geolocation and payment, and a one-year immutable cache for
   content-hashed assets.
 
+The social preview tags in `index.html` hardcode `https://uniclaim-iota.vercel.app`,
+since Open Graph needs absolute URLs. Point them at a custom domain if one is
+added — nothing else in the app depends on the hostname.
+
 The one thing worth setting in the dashboard is the environment variable
 `VITE_WC_PROJECT_ID` (free, from [Reown](https://cloud.reown.com)). Without it
 the deployed site can only connect browser-extension wallets, and says so on the
