@@ -8,7 +8,7 @@
     "@tanstack/react-query": "^5.103.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "viem": "^2.56.7",
+    "viem": "^2.56.8",
     "wagmi": "^2.19.5"
   },
   "devDependencies": {
@@ -18,7 +18,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "tsx": "^4.23.13",
-    "typescript": "~6.0.2",
+    "typescript": "~7.0.2",
     "vite": "^8.3.0"
   },
   "description": "Соберите комиссии со всех Uniswap V3 позиций одной транзакцией",
@@ -37,5 +37,14 @@
     "check:rpcs": "tsx scripts/check-rpcs.ts",
     "verify:v4": "tsx scripts/verify-v4.ts",
     "typecheck": "tsc -b --noEmit"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws@8": ">=8.21.3",
+      "decode-uri-component": ">=0.5.0"
+    }
   }
 }

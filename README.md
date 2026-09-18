@@ -22,6 +22,7 @@ below.
 - [Verifying the maths](#verifying-the-maths)
 - [Limitations](#limitations)
 - [Layout](#layout)
+- [Dependencies](#dependencies)
 - [Deployment](#deployment)
 - [License](#license)
 
@@ -210,6 +211,26 @@ scripts/
   verify-v4.ts     v4 decoding, fee and claim-encoding checks
   check-rpcs.ts    public endpoint probe
 ```
+
+## Dependencies
+
+Everything is on its current release except three deliberate holds, each of which
+looks like a missed upgrade until you know why:
+
+| Package | Held at | Why |
+| --- | --- | --- |
+| `wagmi` | 2.x | RainbowKit's latest release (2.2.11) still peers on `wagmi@^2.9`. Bumping wagmi to 3.x reintroduces an unmet peer dependency and no RainbowKit release fixes it yet. |
+| `@types/node` | 24.x | The major tracks the Node runtime, and `.nvmrc` pins Node 24. Types for Node 26 would describe APIs this project does not run on. |
+| `uuid` | 9.0.1 (transitive) | One open moderate advisory — a missing buffer bounds check in `v3/v5/v6` when a `buf` argument is passed. The fix only exists in 11.1.1+, two majors up, under the wallet connectors. The vulnerable call shape is not on any path here, and forcing that jump risks breaking wallet connections that cannot be verified end to end from a script. |
+
+Two transitive advisories *are* patched, through `pnpm.overrides`:
+
+- `ws` → `>=8.21.3`, fixing a high-severity memory-exhaustion DoS plus an
+  uninitialized-memory disclosure. The override is scoped to `ws@8` on purpose:
+  another branch of the tree resolves `ws@7`, which the advisory does not cover
+  and which should not be dragged across a major.
+- `decode-uri-component` → `>=0.5.0`, fixing a DoS on malformed percent-encoded
+  input.
 
 ## Deployment
 
