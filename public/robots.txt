@@ -1,5 +1,5 @@
-# UniClaim — https://uniclaim-iota.vercel.app
+# UniClaim — https://uniclaim.org
 User-agent: *
 Allow: /
 
-Sitemap: https://uniclaim-iota.vercel.app/sitemap.xml
+Sitemap: https://uniclaim.org/sitemap.xml

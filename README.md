@@ -294,9 +294,18 @@ nothing needs filling in by hand:
   microphone, geolocation and payment, and a one-year immutable cache for
   content-hashed assets.
 
-The social preview tags in `index.html` hardcode `https://uniclaim-iota.vercel.app`,
-since Open Graph needs absolute URLs. Point them at a custom domain if one is
-added — nothing else in the app depends on the hostname.
+The canonical host is `https://uniclaim.org`, hardcoded in `index.html`
+(canonical link, Open Graph, JSON-LD), `public/robots.txt` and
+`public/sitemap.xml`, because Open Graph and sitemaps need absolute URLs. Those
+five files are the only place the hostname appears; nothing in the app depends
+on it.
+
+The apex domain and `www` must **both** be added to the Vercel project, or the
+one that is missing gets served the other's certificate and fails the hostname
+check — a browser then shows a security warning, which for a wallet-connecting
+app is fatal. Set the apex as primary so `www` and the `.vercel.app` URL both
+redirect to it: one indexable address, no duplicate content for a crawler to
+choose between.
 
 The one thing worth setting in the dashboard is the environment variable
 `VITE_WC_PROJECT_ID` (free, from [Reown](https://cloud.reown.com)). Without it
