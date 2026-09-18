@@ -214,23 +214,43 @@ scripts/
 
 ## Dependencies
 
-Everything is on its current release except three deliberate holds, each of which
+Everything is on its current release except two deliberate holds, each of which
 looks like a missed upgrade until you know why:
 
 | Package | Held at | Why |
 | --- | --- | --- |
-| `wagmi` | 2.x | RainbowKit's latest release (2.2.11) still peers on `wagmi@^2.9`. Bumping wagmi to 3.x reintroduces an unmet peer dependency and no RainbowKit release fixes it yet. |
+| `wagmi` | 2.x | RainbowKit's latest release (2.2.11) still peers on `wagmi@^2.9`. Bumping wagmi to 3.x reintroduces the unmet peer this project started out fixing. |
 | `@types/node` | 24.x | The major tracks the Node runtime, and `.nvmrc` pins Node 24. Types for Node 26 would describe APIs this project does not run on. |
-| `uuid` | 9.0.1 (transitive) | One open moderate advisory — a missing buffer bounds check in `v3/v5/v6` when a `buf` argument is passed. The fix only exists in 11.1.1+, two majors up, under the wallet connectors. The vulnerable call shape is not on any path here, and forcing that jump risks breaking wallet connections that cannot be verified end to end from a script. |
 
-Two transitive advisories *are* patched, through `pnpm.overrides`:
+### Security advisories
 
-- `ws` → `>=8.21.3`, fixing a high-severity memory-exhaustion DoS plus an
-  uninitialized-memory disclosure. The override is scoped to `ws@8` on purpose:
-  another branch of the tree resolves `ws@7`, which the advisory does not cover
-  and which should not be dragged across a major.
-- `decode-uri-component` → `>=0.5.0`, fixing a DoS on malformed percent-encoded
-  input.
+`pnpm audit` reported one high and four moderate advisories, all transitive
+under `@wagmi/connectors`. Before patching them it is worth knowing that **none
+of them is reachable here**, which was checked rather than assumed:
+
+| Package | Ships to the browser? | Vulnerable path used? |
+| --- | --- | --- |
+| `ws` | No — `Sec-WebSocket-Key` and `permessage-deflate` appear in zero bundle chunks, and no code or endpoint here uses a WebSocket transport | No |
+| `decode-uri-component` | No — zero chunks | No |
+| `uuid` | No — its internals (`unsafeStringify`, `byteToHex`, `rng`) appear in zero chunks; the `uuid` strings in the bundle are unrelated field names, and `randomUUID` there is the platform's own | No — consumers only call `v4`, while the flaw needs a `buf` argument passed to `v3`/`v5`/`v6` |
+
+They are pinned forward anyway, through `pnpm.overrides`, for one reason: a
+clean audit means the next advisory — which may well be reachable — stands out
+instead of arriving in a pile of noise. Since none of this code ships, the
+overrides cannot change the app's behaviour.
+
+- `ws` → `>=8.21.3`, clearing a high-severity memory-exhaustion DoS and an
+  uninitialized-memory disclosure. Scoped to `ws@8` on purpose: another branch
+  resolves `ws@7`, which the advisory does not cover and which a blanket
+  override would drag across a major for nothing.
+- `decode-uri-component` → `>=0.5.0`, clearing a DoS on malformed input.
+- `uuid` → `^11.1.1`, the smallest jump that clears the advisory.
+
+**Do not raise `uuid` past 11.** Version 12.0.0 removed CommonJS support, and
+three consumers here — `@metamask/sdk`, `@metamask/sdk-communication-layer` and
+`@metamask/utils` — load it with `require("uuid")`. uuid 11 still publishes a
+`require` condition; 12 and later do not. `^11.1.1` was verified by connecting
+MetaMask and Rabby against it.
 
 ## Deployment
 
