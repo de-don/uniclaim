@@ -24,9 +24,10 @@ export type ChainConfig = {
   llamaKey: string
   color: string
   /**
-   * Path segment the Uniswap interface uses for this chain. Omitted where it
-   * has no page for the chain, in which case positions link to the block
-   * explorer instead — a link that is merely less pretty, never broken.
+   * Path segment the Uniswap interface uses for this chain. Omitted where it has
+   * no page for the chain, in which case positions link to the block explorer
+   * instead — a link that is merely less pretty, never broken. Every value here
+   * was confirmed against a live position rather than assumed.
    */
   uniswapSlug?: string
   /**
@@ -140,6 +141,7 @@ export const CHAINS: ChainConfig[] = [
      * length, differing only where constructor immutables are baked in.
      */
     chain: robinhood,
+    uniswapSlug: 'robinhood',
     positionManager: '0x73991a25c818bf1f1128deaab1492d45638de0d3',
     rpcUrls: [
       'https://rpc.ordofi.network',

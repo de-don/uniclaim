@@ -126,14 +126,19 @@ explorer, so the script tests the maths rather than a third-party service.
 
 Positions with no accrued fees are listed too, greyed out, behind a **Hide positions with no fees**
 toggle that is on by default. They are never included in a claim: collecting a zero costs gas and
-returns nothing. The summary reports both counts — how many positions have fees and how many exist
-in total — each split by protocol version, so a wallet can tell "nothing to claim" apart from
-"nothing found".
+returns nothing.
 
-Clicking a position opens it on the Uniswap interface
-(`app.uniswap.org/positions/{v3|v4}/{chain}/{tokenId}`, spot-checked on Ethereum, BNB Chain and
-Blast). Chains the interface has no page for — Robinhood Chain — link to the NFT on the block
-explorer instead.
+The summary reports two counts: how many positions exist at all, and how many carry fees worth at
+least $0.01. Dust is excluded from the second because a long tail of it is normal and none of it is
+worth a transaction; positions whose tokens have no price quote are counted, since they cannot be
+ruled out as dust. Both figures are deliberately plain numbers — a per-version breakdown was tried
+and cluttered the tiles without answering a question anyone had.
+
+Clicking a position opens it on the Uniswap interface,
+`app.uniswap.org/positions/{v3|v4}/{chain}/{tokenId}`. Every chain slug in the config was confirmed
+against a live position rather than assumed — including Robinhood Chain, which the interface does
+support under `robinhood`. A chain without a slug falls back to the position's NFT on the block
+explorer, so adding a chain can never produce a broken link.
 
 ## Limitations
 

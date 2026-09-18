@@ -63,6 +63,8 @@ const MOCK: Record<number, Position[]> = {
     mock(42161, 3_112_004n, USDC, WETH, 500, 88_240_000n, 12_119_338_201_991_100n, 132.05, true),
     // Nothing accrued yet — shown greyed out, and excluded from every action.
     mock(42161, 3_400_112n, WBTC, USDC, 500, 0n, 0n, null, false),
+    // Claimable, but dust: counted in "found", not in "≥ $0.01".
+    mock(42161, 3_400_998n, USDC, WETH, 3000, 2_100n, 1_400_000_000n, 0.004, true),
     mock(
       42161,
       208_173n,

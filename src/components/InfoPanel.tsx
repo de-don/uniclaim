@@ -232,6 +232,11 @@ function Faq() {
             A position that was closed and fully emptied is not listed at all — it holds neither
             liquidity nor fees, so there is nothing left to show.
           </p>
+          <p>
+            The <strong>Positions ≥ $0.01</strong> figure at the top leaves out fees too small to be
+            worth a transaction, which is why it can be lower than the number of rows you see.
+            Nothing is hidden by it — dust positions are still listed and still claimable.
+          </p>
         </>
       ),
     },
@@ -240,8 +245,8 @@ function Faq() {
       a: (
         <p>
           It opens that exact position on the Uniswap interface, where you can see its range and
-          manage it. On a chain Uniswap has no page for, it opens the position's NFT on that chain's
-          block explorer instead.
+          manage it. Should a chain ever be added that Uniswap has no page for, the link falls back
+          to the position's NFT on that chain's block explorer.
         </p>
       ),
     },

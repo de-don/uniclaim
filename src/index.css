@@ -391,8 +391,6 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .tag--v3 { color: #9a8cff; border-color: rgba(154, 140, 255, 0.4); }
 .tag--v4 { color: #ff7ac6; border-color: rgba(255, 122, 198, 0.45); }
 
-.summary__value { display: flex; align-items: baseline; gap: 8px; }
-.summary__sub { font-size: 13px; font-weight: 500; color: var(--muted); }
 
 .menu__compact {
   display: none;
