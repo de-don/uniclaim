@@ -1,0 +1,40 @@
+name: Verify against live chains
+
+# Deliberately not part of CI: these scripts read live pools over public RPC
+# endpoints, so a rate limit would fail a pull request that changed nothing.
+# They run weekly to catch drift — a redeployed contract, a dead endpoint, a
+# protocol change — and on demand.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * 1'
+
+concurrency:
+  group: verify
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Fee maths and claim encoding
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Public RPC endpoints answer a real Multicall3 read
+        run: pnpm check:rpcs
+
+      - name: v3 fees match what collect() pays out, to the wei
+        run: pnpm verify
+
+      - name: v4 decoding, fees and claim encoding
+        run: pnpm verify:v4
