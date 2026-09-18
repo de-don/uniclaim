@@ -312,10 +312,16 @@ app sends no custom events anywhere, so **a wallet address is never part of what
 Vercel receives**. Running locally or self-hosting sends them nothing at all.
 
 This is a real change to what the app claims, so the wording in the UI changed
-with it: the landing page and the FAQ used to promise "no tracking" and "no
-analytics", and now say plainly what is counted. An app whose whole argument is
-that you can verify its claims does not get to keep a claim that has stopped
-being true.
+with it. The landing page used to promise "no tracking" and the FAQ "no
+analytics"; both are gone. The landing page does not enumerate the exception —
+its remaining claims (no backend, no account, no way to move your funds) are all
+still true, and a hero paragraph is not the place for a full disclosure — while
+the FAQ's list of outgoing requests carries the detail, alongside the RPC nodes,
+DefiLlama and the block explorer.
+
+The distinction worth keeping: not listing every exception up front is fine;
+claiming something you do not do is not. Whatever else changes here, that "no
+tracking" line must not come back while analytics are on.
 
 ## Deployment
 

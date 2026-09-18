@@ -57,9 +57,12 @@ export function Landing({ onOpenInfo }: Props) {
         </p>
       )}
 
+      {/* Every claim here is still true with analytics on the hosted site. What
+          this line must never regain is the old "no tracking" promise — the
+          FAQ's list of outgoing requests is where the full picture lives. */}
       <p className="landing__note">
         Everything runs in your browser. There is no backend, no account, and no way for this app
-        to move your funds. The hosted site counts visits, and nothing else about you.{' '}
+        to move your funds.{' '}
         <button className="link" onClick={() => onOpenInfo('security')}>
           How that works
         </button>
