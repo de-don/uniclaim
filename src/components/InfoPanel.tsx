@@ -122,12 +122,13 @@ function Faq() {
       a: (
         <>
           <p>
-            Yes. UniClaim is a static page with no backend and no database. There is no account, no
-            analytics and no server that sees your wallet. Your address is never stored anywhere.
+            Yes. UniClaim is a static page with no backend and no database. There is no account, and
+            no server of ours ever sees your wallet — your address is not stored anywhere.
           </p>
           <p>
             Being honest about the exceptions: a browser page cannot read a blockchain by itself, so
-            three kinds of request leave your machine, and all of them carry only public data.
+            four kinds of request leave your machine, and none of them carries your address except
+            where the chain itself requires it.
           </p>
           <ul>
             <li>
@@ -143,6 +144,14 @@ function Faq() {
               ids an address holds, because the v4 contract cannot be asked directly. Every id that
               comes back is verified on chain, so a wrong or hostile answer cannot do more than waste
               a lookup.
+            </li>
+            <li>
+              <strong>Vercel Analytics and Speed Insights</strong> — visit counts and page-load
+              timings for the hosted site, so we can see whether it is working for people. They are
+              cookieless and record no identifier that follows you between sites. Crucially, they
+              are wired at page level only: this app sends no custom events, so your wallet address
+              is never part of what they receive. Running the app locally, or self-hosting it, sends
+              nothing to them at all.
             </li>
           </ul>
         </>

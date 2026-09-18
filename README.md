@@ -7,7 +7,8 @@ chain instead of one per position.
 
 Entirely client-side: no backend, no account, no API keys. Almost everything is read straight from
 the contracts over public RPC endpoints; the one exception is v4 position discovery, explained
-below.
+below. The hosted deployment adds Vercel's page-level analytics — see
+[Hosting on Vercel](#hosting-on-vercel).
 
 ![Landing page](docs/landing.jpg)
 
@@ -23,6 +24,7 @@ below.
 - [Limitations](#limitations)
 - [Layout](#layout)
 - [Dependencies](#dependencies)
+- [Hosting on Vercel](#hosting-on-vercel)
 - [Deployment](#deployment)
 - [License](#license)
 
@@ -276,7 +278,49 @@ three consumers here — `@metamask/sdk`, `@metamask/sdk-communication-layer` an
 `require` condition; 12 and later do not. `^11.1.1` was verified by connecting
 MetaMask and Rabby against it.
 
+## Hosting on Vercel
+
+Importing the repository is enough — `vercel.json` carries the settings, so
+nothing needs filling in by hand:
+
+- **Framework** Vite, **build** `pnpm build`, **output** `dist`. pnpm is picked
+  up from the `packageManager` field, and Node from `engines.node` (`>=22`,
+  which resolves to the newest available major — Vercel has Node 24).
+- **Rewrites** send anything that is not a built asset to `index.html`, so a
+  deep link cannot 404 before the app loads.
+- **Headers** set `nosniff`, `X-Frame-Options: DENY` (nothing here should be
+  framed — a wallet prompt inside someone else's iframe is a phishing pattern),
+  a conservative `Referrer-Policy`, a `Permissions-Policy` denying camera,
+  microphone, geolocation and payment, and a one-year immutable cache for
+  content-hashed assets.
+
+The one thing worth setting in the dashboard is the environment variable
+`VITE_WC_PROJECT_ID` (free, from [Reown](https://cloud.reown.com)). Without it
+the deployed site can only connect browser-extension wallets, and says so on the
+landing page. Do **not** set `VITE_BASE`: it exists for GitHub Pages' `/<repo>/`
+prefix, and on a Vercel domain the app is served from the root.
+
+### Analytics
+
+The deployment includes `@vercel/analytics` and `@vercel/speed-insights`, both
+mounted once at the app root. Turn them on in the Vercel dashboard under
+Analytics and Speed Insights; until then the scripts are inert.
+
+What they collect is page visits and load timings. They are cookieless and set
+no cross-site identifier. They are deliberately wired at page level only — this
+app sends no custom events anywhere, so **a wallet address is never part of what
+Vercel receives**. Running locally or self-hosting sends them nothing at all.
+
+This is a real change to what the app claims, so the wording in the UI changed
+with it: the landing page and the FAQ used to promise "no tracking" and "no
+analytics", and now say plainly what is counted. An app whose whole argument is
+that you can verify its claims does not get to keep a claim that has stopped
+being true.
+
 ## Deployment
+
+Vercel handles the hosted site; the workflows below cover CI and an alternative
+GitHub Pages target.
 
 `.github/workflows/ci.yml` runs lint, typecheck and build on every push and pull request to `main`.
 

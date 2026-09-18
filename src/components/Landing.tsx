@@ -58,8 +58,8 @@ export function Landing({ onOpenInfo }: Props) {
       )}
 
       <p className="landing__note">
-        Everything runs in your browser. There is no backend, no account, no tracking — and no way
-        for this app to move your funds.{' '}
+        Everything runs in your browser. There is no backend, no account, and no way for this app
+        to move your funds. The hosted site counts visits, and nothing else about you.{' '}
         <button className="link" onClick={() => onOpenInfo('security')}>
           How that works
         </button>
