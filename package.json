@@ -23,7 +23,7 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.0"
   },
-  "description": "Соберите комиссии со всех Uniswap V3 позиций одной транзакцией",
+  "description": "Claim unclaimed Uniswap v3 and v4 fees from every position you own, batched into one transaction per chain.",
   "license": "BUSL-1.1",
   "packageManager": "pnpm@10.11.1",
   "repository": {
