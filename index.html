@@ -6,32 +6,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b0b0f" />
 
-    <title>UniClaim — claim Uniswap fees in one transaction</title>
+    <title>UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction</title>
     <meta
       name="description"
-      content="Find every Uniswap v3 and v4 position you own across 10 chains and claim the unclaimed fees in one transaction per chain. Runs entirely in your browser."
+      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain. Runs in your browser, no token approvals."
     />
+    <link rel="canonical" href="https://uniclaim-iota.vercel.app/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="UniClaim" />
-    <meta property="og:title" content="UniClaim — claim Uniswap fees in one transaction" />
+    <meta property="og:title" content="UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction" />
     <meta
       property="og:description"
-      content="Find every Uniswap v3 and v4 position you own across 10 chains and claim the unclaimed fees in one transaction per chain. Runs entirely in your browser."
+      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain. Runs in your browser, no token approvals."
     />
     <meta property="og:url" content="https://uniclaim-iota.vercel.app/" />
     <meta property="og:image" content="https://uniclaim-iota.vercel.app/og.jpg" />
+    <meta property="og:image:alt" content="UniClaim listing Uniswap positions grouped by chain with their unclaimed fees" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="UniClaim — claim Uniswap fees in one transaction" />
+    <meta name="twitter:title" content="UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction" />
     <meta
       name="twitter:description"
-      content="Find every Uniswap v3 and v4 position you own across 10 chains and claim the unclaimed fees in one transaction per chain."
+      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain."
     />
     <meta name="twitter:image" content="https://uniclaim-iota.vercel.app/og.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "UniClaim",
+        "url": "https://uniclaim-iota.vercel.app/",
+        "description": "Claim unclaimed Uniswap v3 and v4 liquidity provider fees from every position you own, batched into one transaction per chain.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and an Ethereum wallet",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "Finds every Uniswap v3 and v4 position an address owns",
+          "Computes unclaimed fees from live pool state",
+          "Claims fees from many positions in a single transaction per chain",
+          "Supports Ethereum, Arbitrum, Optimism, Polygon, Base, BNB Chain, Avalanche, Celo, Blast and Robinhood Chain"
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      React replaces this on mount. It exists so a crawler that does not run
+      JavaScript, and a visitor on a slow connection, get the headline before
+      292 KB of bundle arrives. Keep it in step with the hero in
+      src/components/Landing.tsx.
+    -->
+    <div id="root">
+      <div class="app">
+        <main class="main">
+          <div class="landing">
+            <h1 class="landing__title">
+              Claim fees from <span class="accent">every position</span> in one transaction
+            </h1>
+            <p class="landing__lede">
+              UniClaim finds all of your Uniswap v3 and v4 positions, shows the fees you have earned
+              but never collected, and claims them in a batch — one transaction per chain instead of
+              one per position.
+            </p>
+          </div>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

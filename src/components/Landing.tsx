@@ -22,6 +22,9 @@ type Props = {
 }
 
 export function Landing({ onOpenInfo }: Props) {
+  // The headline and lede below are mirrored as static markup in index.html so
+  // crawlers and slow connections see them before the bundle loads. Change them
+  // in both places.
   return (
     <div className="landing">
       <h1 className="landing__title">
