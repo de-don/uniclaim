@@ -41,6 +41,15 @@ explained below.
    tick walk is unnecessary and only the delta against the position's checkpoint remains. v4 keeps
    no `tokensOwed`.
 
+   On v3 that figure is an upper bound rather than the payout. `collect` ends in
+   `pool.collect`, which pays at most the `tokensOwed` the pool has accrued for the manager's
+   aggregated position in that range — and the pool adds to it with a separate floor division on
+   every update, so a sum of floors can fall a wei or two below the floor of a single-step sum. The
+   scanner therefore also reads the pool-side position (keyed by
+   `keccak256(manager, tickLower, tickUpper)`, deduplicated since NFTs can share a range) and takes
+   the smaller of the two. Without this, some positions displayed 1–3 wei more than a claim
+   returned.
+
 3. **Claiming.** On v3 the selected `collect()` calls are encoded into a `bytes[]` and submitted as
    a single `NonfungiblePositionManager.multicall`. On v4 there is no `collect`: fees are realised
    by decreasing liquidity by zero and then closing each currency, all inside one `modifyLiquidities`
@@ -113,10 +122,18 @@ v4 has no read-only equivalent of `collect`, so `pnpm verify:v4` checks it three
 Token ids for these checks are sampled from `nextTokenId` rather than looked up through an
 explorer, so the script tests the maths rather than a third-party service.
 
-Known gap: on some v3 positions the figure shown is 1–3 wei higher than `collect()` pays out. The
-pool accumulates its own `tokensOwed` with a separate floor division per update, and a sum of floors
-can fall below the floor of a sum — but that explanation is not yet confirmed, so it is recorded
-here rather than claimed as understood.
+## Reading the list
+
+Positions with no accrued fees are listed too, greyed out, behind a **Hide positions with no fees**
+toggle that is on by default. They are never included in a claim: collecting a zero costs gas and
+returns nothing. The summary reports both counts — how many positions have fees and how many exist
+in total — each split by protocol version, so a wallet can tell "nothing to claim" apart from
+"nothing found".
+
+Clicking a position opens it on the Uniswap interface
+(`app.uniswap.org/positions/{v3|v4}/{chain}/{tokenId}`, spot-checked on Ethereum, BNB Chain and
+Blast). Chains the interface has no page for — Robinhood Chain — link to the NFT on the block
+explorer instead.
 
 ## Limitations
 

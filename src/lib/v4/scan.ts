@@ -3,7 +3,7 @@ import { erc20Abi } from '../../abi/positionManager'
 import { poolKeyComponents, stateViewAbi, v4PositionManagerAbi } from '../../abi/v4'
 import type { ChainConfig } from '../../config/chains'
 import type { V4Config } from '../../config/v4'
-import { feesFromGrowth } from '../fees'
+import { feesFromCheckpoint } from '../fees'
 import { shortAddress } from '../format'
 import { readAll } from '../multicall'
 import type { Position, TokenInfo } from '../types'
@@ -173,8 +173,8 @@ export async function scanV4TokenIds(
     const slot0 = state[i * 3 + 2] as readonly unknown[]
     const tickCurrent = Number(slot0[1])
 
-    const fees0 = feesFromGrowth(entry.liquidity, inside0, last0)
-    const fees1 = feesFromGrowth(entry.liquidity, inside1, last1)
+    const fees0 = feesFromCheckpoint(entry.liquidity, inside0, last0)
+    const fees1 = feesFromCheckpoint(entry.liquidity, inside1, last1)
     if (fees0 === 0n && fees1 === 0n) return
 
     positions.push({

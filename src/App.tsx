@@ -1,15 +1,16 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ChainGroup } from './components/ChainGroup'
 import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
+import { Summary } from './components/Summary'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
+import { V4_CHAINS } from './config/v4'
 import { useClaim } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
-import { formatUsd } from './lib/format'
+import { hasFees } from './lib/links'
 import { MAX_POSITIONS } from './lib/scan'
-import { V4_CHAINS } from './config/v4'
 import type { Position } from './lib/types'
 
 const MENU: { id: InfoTab; label: string }[] = [
@@ -18,40 +19,54 @@ const MENU: { id: InfoTab; label: string }[] = [
   { id: 'faq', label: 'FAQ' },
 ]
 
+const HIDE_EMPTY_KEY = 'uniclaim.hideEmpty'
+
+/** Per-viewer convenience only, so a blocked or empty store is not a problem. */
+function readHideEmpty(): boolean {
+  try {
+    return localStorage.getItem(HIDE_EMPTY_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
+
 export default function App() {
   const { address, isConnected } = useAccount()
   const { scans, isScanning, rescan, removePositions } = usePositions(address)
   const { claim, state: claimState } = useClaim()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [infoTab, setInfoTab] = useState<InfoTab | null>(null)
+  const [hideEmpty, setHideEmpty] = useState(readHideEmpty)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HIDE_EMPTY_KEY, String(hideEmpty))
+    } catch {
+      // A viewer with site data blocked simply does not get the preference kept.
+    }
+  }, [hideEmpty])
+
+  const allPositions = useMemo(() => scans.flatMap((s) => s.positions), [scans])
+  const feePositions = useMemo(() => allPositions.filter(hasFees), [allPositions])
+  const emptyCount = allPositions.length - feePositions.length
 
   const groups = useMemo(
     () =>
-      CHAINS.map((config) => ({
-        config,
-        scan: scans.find((s) => s.chainId === config.chain.id),
-      })).filter((g) => (g.scan?.positions.length ?? 0) > 0),
-    [scans],
+      CHAINS.map((config) => {
+        const scan = scans.find((s) => s.chainId === config.chain.id)
+        const positions = scan?.positions ?? []
+        return { config, visible: hideEmpty ? positions.filter(hasFees) : positions }
+      }).filter((g) => g.visible.length > 0),
+    [scans, hideEmpty],
   )
 
-  const allPositions = useMemo(() => scans.flatMap((s) => s.positions), [scans])
   const selectedPositions = useMemo(
-    () => allPositions.filter((p) => selected.has(p.key)),
-    [allPositions, selected],
-  )
-
-  const totalUsd = useMemo(
-    () =>
-      allPositions.reduce<number | null>(
-        (sum, p) => (p.usd === null || sum === null ? sum : sum + p.usd),
-        0,
-      ),
-    [allPositions],
+    () => feePositions.filter((p) => selected.has(p.key)),
+    [feePositions, selected],
   )
 
   const failedChains = scans.filter((s) => s.status === 'error')
   const truncated = scans.filter((s) => s.skipped > 0)
-  const v4Count = allPositions.filter((p) => p.version === 'v4').length
   const v4Failed = scans.filter((s) => s.v4Error)
   const v4ChainNames = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name).filter(Boolean)
 
@@ -66,7 +81,8 @@ export default function App() {
 
   const toggleChain = useCallback(
     (chainId: number, on: boolean) => {
-      const keys = allPositions.filter((p) => p.chainId === chainId).map((p) => p.key)
+      // Only positions that would actually pay out are selectable.
+      const keys = feePositions.filter((p) => p.chainId === chainId).map((p) => p.key)
       setSelected((prev) => {
         const next = new Set(prev)
         for (const key of keys) {
@@ -76,7 +92,7 @@ export default function App() {
         return next
       })
     },
-    [allPositions],
+    [feePositions],
   )
 
   const runClaim = useCallback(
@@ -140,23 +156,21 @@ export default function App() {
           <Landing onOpenInfo={setInfoTab} />
         ) : (
           <>
-            <div className="summary">
-              <div>
-                <span className="summary__label">Unclaimed fees</span>
-                <span className="summary__value">{formatUsd(totalUsd)}</span>
+            <Summary positions={allPositions} chainCount={groups.length} />
+
+            {allPositions.length > 0 && (
+              <div className="filters">
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={hideEmpty}
+                    onChange={(e) => setHideEmpty(e.target.checked)}
+                  />
+                  Hide positions with no fees
+                  {emptyCount > 0 && ` (${emptyCount})`}
+                </label>
               </div>
-              <div>
-                <span className="summary__label">Positions with fees</span>
-                <span className="summary__value">
-                  {allPositions.length}
-                  {v4Count > 0 && <span className="summary__sub">{v4Count} on v4</span>}
-                </span>
-              </div>
-              <div>
-                <span className="summary__label">Chains</span>
-                <span className="summary__value">{groups.length}</span>
-              </div>
-            </div>
+            )}
 
             {isScanning && (
               <div className="scanbar">
@@ -193,19 +207,20 @@ export default function App() {
 
             {!isScanning && groups.length === 0 && failedChains.length === 0 && (
               <div className="empty">
-                <h2>Nothing to claim</h2>
+                <h2>{allPositions.length > 0 ? 'Nothing to claim' : 'No positions found'}</h2>
                 <p>
-                  No Uniswap position on a supported chain has fees waiting. Positions with a zero
-                  balance are hidden.
+                  {allPositions.length > 0
+                    ? `Found ${allPositions.length} position${allPositions.length === 1 ? '' : 's'}, none with fees waiting. Untick the filter above to see them.`
+                    : 'This address holds no Uniswap v3 or v4 position on a supported chain.'}
                 </p>
               </div>
             )}
 
-            {groups.map(({ config, scan }) => (
+            {groups.map(({ config, visible }) => (
               <ChainGroup
                 key={config.chain.id}
                 config={config}
-                positions={scan!.positions}
+                positions={visible}
                 selected={selected}
                 onToggle={toggle}
                 onToggleChain={toggleChain}
@@ -213,17 +228,18 @@ export default function App() {
                 claimState={claimState}
               />
             ))}
+
+            {!isScanning && (
+              <p className="footnote">
+                v4 positions are scanned on {v4ChainNames.join(', ')}. Everywhere else only v3
+                exists in a form this app can enumerate — see{' '}
+                <button className="link" onClick={() => setInfoTab('faq')}>
+                  the FAQ
+                </button>
+                .
+              </p>
+            )}
           </>
-        )}
-        {isConnected && !isScanning && (
-          <p className="footnote">
-            v4 positions are scanned on {v4ChainNames.join(', ')}. Everywhere else only v3 exists in
-            a form this app can enumerate — see{' '}
-            <button className="link" onClick={() => setInfoTab('faq')}>
-              the FAQ
-            </button>
-            .
-          </p>
         )}
       </main>
 
@@ -239,9 +255,7 @@ export default function App() {
         </footer>
       )}
 
-      {infoTab && (
-        <InfoPanel tab={infoTab} onTab={setInfoTab} onClose={() => setInfoTab(null)} />
-      )}
+      {infoTab && <InfoPanel tab={infoTab} onTab={setInfoTab} onClose={() => setInfoTab(null)} />}
     </div>
   )
 }

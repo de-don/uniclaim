@@ -221,9 +221,27 @@ function Faq() {
     {
       q: 'Why is a position missing from the list?',
       a: (
+        <>
+          <p>
+            Positions with nothing to claim are hidden by default, since there is no reason to pay
+            gas for a zero. Untick <strong>Hide positions with no fees</strong> to see them; they
+            appear greyed out and stay out of every claim, because batching one in would spend gas
+            to collect nothing.
+          </p>
+          <p>
+            A position that was closed and fully emptied is not listed at all — it holds neither
+            liquidity nor fees, so there is nothing left to show.
+          </p>
+        </>
+      ),
+    },
+    {
+      q: 'What happens when I click a position?',
+      a: (
         <p>
-          Positions with nothing to claim are hidden — there is no reason to pay gas for a zero. A
-          position that was closed and emptied is also skipped.
+          It opens that exact position on the Uniswap interface, where you can see its range and
+          manage it. On a chain Uniswap has no page for, it opens the position's NFT on that chain's
+          block explorer instead.
         </p>
       ),
     },

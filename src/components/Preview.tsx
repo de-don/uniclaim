@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { CHAINS } from '../config/chains'
+import { hasFees } from '../lib/links'
 import type { Position } from '../lib/types'
 import { ChainGroup } from './ChainGroup'
+import { Summary } from './Summary'
 
 /**
  * Dev-only harness (open `#preview`) for eyeballing the connected-state layout
@@ -59,6 +61,8 @@ const MOCK: Record<number, Position[]> = {
   ],
   42161: [
     mock(42161, 3_112_004n, USDC, WETH, 500, 88_240_000n, 12_119_338_201_991_100n, 132.05, true),
+    // Nothing accrued yet — shown greyed out, and excluded from every action.
+    mock(42161, 3_400_112n, WBTC, USDC, 500, 0n, 0n, null, false),
     mock(
       42161,
       208_173n,
@@ -92,14 +96,28 @@ const MOCK: Record<number, Position[]> = {
 
 export function Preview() {
   const [selected, setSelected] = useState<Set<string>>(new Set(['v3-1-498211']))
+  const [hideEmpty, setHideEmpty] = useState(false)
+
+  const all = Object.values(MOCK).flat()
+  const emptyCount = all.length - all.filter(hasFees).length
 
   return (
     <div className="main">
+      <Summary positions={all} chainCount={Object.keys(MOCK).length} />
+
+      <div className="filters">
+        <label className="switch">
+          <input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} />
+          Hide positions with no fees
+          {emptyCount > 0 && ` (${emptyCount})`}
+        </label>
+      </div>
+
       {CHAINS.filter((c) => MOCK[c.chain.id]).map((config) => (
         <ChainGroup
           key={config.chain.id}
           config={config}
-          positions={MOCK[config.chain.id]}
+          positions={hideEmpty ? MOCK[config.chain.id].filter(hasFees) : MOCK[config.chain.id]}
           selected={selected}
           onToggle={(key) =>
             setSelected((prev) => {

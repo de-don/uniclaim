@@ -81,7 +81,7 @@ body {
 /* ---------- summary ---------- */
 .summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -221,6 +221,10 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   background: rgba(20, 20, 27, 0.92);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
+}
+
+@media (max-width: 960px) {
+  .summary { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 720px) {
@@ -446,3 +450,32 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   padding: 1px 5px;
   font-size: 12px;
 }
+
+/* ---------- positions with nothing to claim ---------- */
+.row--empty { opacity: 0.55; }
+.row__none { font-style: italic; }
+
+.row__symbols--link {
+  color: var(--text);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+}
+.row__symbols--link:hover { color: var(--accent); }
+.row__out { font-size: 11px; color: var(--muted); }
+.row__symbols--link:hover .row__out { color: var(--accent); }
+
+/* ---------- zero-fee toggle ---------- */
+.filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.switch input { margin: 0; }

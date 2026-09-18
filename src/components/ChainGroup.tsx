@@ -1,5 +1,6 @@
 import type { ChainConfig } from '../config/chains'
 import { formatUsd } from '../lib/format'
+import { hasFees } from '../lib/links'
 import type { Position } from '../lib/types'
 import { batchCount, type ClaimState } from '../hooks/useClaim'
 import { PositionRow } from './PositionRow'
@@ -24,10 +25,13 @@ export function ChainGroup({
   claimState,
 }: Props) {
   const chainId = config.chain.id
-  const selectedHere = positions.filter((p) => selected.has(p.key))
-  const allSelected = positions.length > 0 && selectedHere.length === positions.length
+  // Rows with nothing to claim are shown for completeness, but every action
+  // here ignores them: batching one in would spend gas to collect zero.
+  const claimable = positions.filter(hasFees)
+  const selectedHere = claimable.filter((p) => selected.has(p.key))
+  const allSelected = claimable.length > 0 && selectedHere.length === claimable.length
 
-  const totalUsd = positions.reduce<number | null>(
+  const totalUsd = claimable.reduce<number | null>(
     (sum, p) => (p.usd === null || sum === null ? sum : sum + p.usd),
     0,
   )
@@ -39,10 +43,10 @@ export function ChainGroup({
   const explorer = config.chain.blockExplorers?.default.url
   const batch = claimState.batch
   const progress = batch && batch.total > 1 ? ` ${batch.index} of ${batch.total}` : ''
-  const txCount = batchCount(positions)
+  const txCount = batchCount(claimable)
   // Two different reasons produce more than one transaction, and saying "gas"
   // when the real cause is the v3/v4 split would just be wrong.
-  const versions = new Set(positions.map((p) => p.version))
+  const versions = new Set(claimable.map((p) => p.version))
   const txReason =
     txCount === 1
       ? 'A single transaction for every position'
@@ -57,6 +61,7 @@ export function ChainGroup({
           <input
             type="checkbox"
             checked={allSelected}
+            disabled={claimable.length === 0}
             onChange={(e) => onToggleChain(chainId, e.target.checked)}
             aria-label={`Select all positions on ${config.chain.name}`}
           />
@@ -65,24 +70,24 @@ export function ChainGroup({
         <span className="group__dot" style={{ background: config.color }} />
         <h2 className="group__name">{config.chain.name}</h2>
         <span className="group__count">
-          {positions.length} {positions.length === 1 ? 'position' : 'positions'}
+          {claimable.length} of {positions.length} with fees
           {txCount > 1 && ` · ${txCount} transactions`}
         </span>
         <span className="group__usd">{formatUsd(totalUsd)}</span>
 
         <div className="group__actions">
-          {selectedHere.length > 0 && selectedHere.length < positions.length && (
+          {selectedHere.length > 0 && selectedHere.length < claimable.length && (
             <button className="btn" onClick={() => onClaim(chainId, selectedHere)} disabled={busy}>
               Claim selected ({selectedHere.length})
             </button>
           )}
           <button
             className="btn btn--primary"
-            onClick={() => onClaim(chainId, positions)}
-            disabled={busy}
+            onClick={() => onClaim(chainId, claimable)}
+            disabled={busy || claimable.length === 0}
             title={txReason}
           >
-            {busy ? 'Sending…' : `Claim all (${positions.length})`}
+            {busy ? 'Sending…' : `Claim all (${claimable.length})`}
           </button>
         </div>
       </header>

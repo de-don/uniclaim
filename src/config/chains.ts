@@ -24,6 +24,12 @@ export type ChainConfig = {
   llamaKey: string
   color: string
   /**
+   * Path segment the Uniswap interface uses for this chain. Omitted where it
+   * has no page for the chain, in which case positions link to the block
+   * explorer instead — a link that is merely less pretty, never broken.
+   */
+  uniswapSlug?: string
+  /**
    * Public endpoints, probed for real Multicall3 `eth_call` support. Scanning a
    * wallet is read-heavy enough to trip a single provider's rate limit, so each
    * chain gets several and viem rotates on failure.
@@ -34,6 +40,7 @@ export type ChainConfig = {
 export const CHAINS: ChainConfig[] = [
   {
     chain: mainnet,
+    uniswapSlug: 'ethereum',
     rpcUrls: [
       'https://ethereum-rpc.publicnode.com',
       'https://eth.drpc.org',
@@ -44,6 +51,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: arbitrum,
+    uniswapSlug: 'arbitrum',
     rpcUrls: [
       'https://arbitrum-one-rpc.publicnode.com',
       'https://arb1.arbitrum.io/rpc',
@@ -55,6 +63,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: optimism,
+    uniswapSlug: 'optimism',
     rpcUrls: [
       'https://optimism-rpc.publicnode.com',
       'https://mainnet.optimism.io',
@@ -66,6 +75,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: polygon,
+    uniswapSlug: 'polygon',
     rpcUrls: [
       'https://polygon-bor-rpc.publicnode.com',
       'https://polygon.drpc.org',
@@ -76,6 +86,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: base,
+    uniswapSlug: 'base',
     rpcUrls: [
       'https://base-rpc.publicnode.com',
       'https://mainnet.base.org',
@@ -87,6 +98,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: bsc,
+    uniswapSlug: 'bnb',
     rpcUrls: [
       'https://bsc-rpc.publicnode.com',
       'https://bsc-dataseed.binance.org',
@@ -97,6 +109,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: avalanche,
+    uniswapSlug: 'avalanche',
     rpcUrls: [
       'https://avalanche-c-chain-rpc.publicnode.com',
       'https://api.avax.network/ext/bc/C/rpc',
@@ -108,6 +121,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: celo,
+    uniswapSlug: 'celo',
     rpcUrls: [
       'https://forno.celo.org',
       'https://celo-rpc.publicnode.com',
@@ -137,6 +151,7 @@ export const CHAINS: ChainConfig[] = [
   },
   {
     chain: blast,
+    uniswapSlug: 'blast',
     rpcUrls: [
       'https://rpc.blast.io',
       'https://blast-rpc.publicnode.com',

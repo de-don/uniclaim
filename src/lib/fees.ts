@@ -12,43 +12,24 @@ export function subIn256(a: bigint, b: bigint): bigint {
   return diff < 0n ? diff + TWO_256 : diff
 }
 
-/**
- * v4 exposes `feeGrowthInside` directly through StateView, so the tick walk that
- * v3 needs is unnecessary there — only the delta against the position's last
- * checkpoint remains. Fees are never parked in a `tokensOwed` field in v4.
- */
-export function feesFromGrowth(
-  liquidity: bigint,
-  insideX128: bigint,
-  insideLastX128: bigint,
-): bigint {
-  return (liquidity * subIn256(insideX128, insideLastX128)) / Q128
-}
-
-export type FeeInput = {
-  liquidity: bigint
+export type GrowthInput = {
   tickLower: number
   tickUpper: number
   tickCurrent: number
   feeGrowthGlobalX128: bigint
   feeGrowthOutsideLowerX128: bigint
   feeGrowthOutsideUpperX128: bigint
-  feeGrowthInsideLastX128: bigint
-  tokensOwed: bigint
 }
 
-/** Uncollected fees for one side of a position, in token base units. */
-export function uncollectedFees(input: FeeInput): bigint {
+/** Tick.getFeeGrowthInside: fees accrued per unit of liquidity inside a range. */
+export function feeGrowthInside(input: GrowthInput): bigint {
   const {
-    liquidity,
     tickLower,
     tickUpper,
     tickCurrent,
     feeGrowthGlobalX128,
     feeGrowthOutsideLowerX128,
     feeGrowthOutsideUpperX128,
-    feeGrowthInsideLastX128,
-    tokensOwed,
   } = input
 
   const below =
@@ -61,8 +42,18 @@ export function uncollectedFees(input: FeeInput): bigint {
       ? feeGrowthOutsideUpperX128
       : subIn256(feeGrowthGlobalX128, feeGrowthOutsideUpperX128)
 
-  const inside = subIn256(subIn256(feeGrowthGlobalX128, below), above)
-  const delta = subIn256(inside, feeGrowthInsideLastX128)
+  return subIn256(subIn256(feeGrowthGlobalX128, below), above)
+}
 
-  return tokensOwed + (liquidity * delta) / Q128
+/**
+ * Fees accrued since a position's checkpoint, plus anything already set aside
+ * for it. v4 has no `tokensOwed`, so it passes nothing for the last argument.
+ */
+export function feesFromCheckpoint(
+  liquidity: bigint,
+  insideX128: bigint,
+  insideLastX128: bigint,
+  tokensOwed = 0n,
+): bigint {
+  return tokensOwed + (liquidity * subIn256(insideX128, insideLastX128)) / Q128
 }

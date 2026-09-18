@@ -1,7 +1,7 @@
-import type { PublicClient } from 'viem'
+import { encodePacked, keccak256, type PublicClient } from 'viem'
 import { erc20Abi, factoryAbi, poolAbi, positionManagerAbi } from '../abi/positionManager'
 import type { ChainConfig } from '../config/chains'
-import { uncollectedFees } from './fees'
+import { feeGrowthInside, feesFromCheckpoint } from './fees'
 import { shortAddress } from './format'
 import { readAll } from './multicall'
 import type { Position, TokenInfo } from './types'
@@ -33,6 +33,35 @@ type RawPosition = {
   tokensOwed0: bigint
   tokensOwed1: bigint
 }
+
+function rangeKey(pool: `0x${string}`, tickLower: number, tickUpper: number): string {
+  return `${pool}|${tickLower}|${tickUpper}`
+}
+
+/** A v3 pool tracks liquidity per (owner, range) — the manager is the owner. */
+function poolPositionKey(
+  manager: `0x${string}`,
+  tickLower: number,
+  tickUpper: number,
+): `0x${string}` {
+  return keccak256(encodePacked(['address', 'int24', 'int24'], [manager, tickLower, tickUpper]))
+}
+
+const poolPositionAbi = [
+  {
+    type: 'function',
+    name: 'positions',
+    stateMutability: 'view',
+    inputs: [{ type: 'bytes32' }],
+    outputs: [
+      { name: 'liquidity', type: 'uint128' },
+      { name: 'feeGrowthInside0LastX128', type: 'uint256' },
+      { name: 'feeGrowthInside1LastX128', type: 'uint256' },
+      { name: 'tokensOwed0', type: 'uint128' },
+      { name: 'tokensOwed1', type: 'uint128' },
+    ],
+  },
+] as const
 
 /**
  * Reads every V3 position of `owner` on one chain and derives its uncollected
@@ -92,7 +121,8 @@ export async function scanChain(
         bigint, bigint, bigint, bigint, bigint,
       ]
 
-    // A fully burned position holds neither liquidity nor unclaimed fees.
+    // A fully burned position holds neither liquidity nor unclaimed fees, so
+    // there is nothing left to show for it at all.
     if (liquidity === 0n && owed0 === 0n && owed1 === 0n) return
 
     raw.push({
@@ -167,6 +197,41 @@ export async function scanChain(
     { label: 'ticks' },
   )
 
+  /*
+   * `collect` pays out at most what the pool has set aside for the manager's
+   * aggregated position in this range. The pool credits that figure with its own
+   * floor division on every update, and a sum of floors can land a wei or two
+   * below the floor of a single-step sum — so the amount computed from an NFT's
+   * own checkpoint is an upper bound, not the payout. Reading the pool side and
+   * taking the smaller of the two is what makes the displayed number the amount
+   * a claim actually returns. Deduplicated: several NFTs can share one range.
+   */
+  // Ticks are signed, so they are never joined with '-' into a key.
+  const ranges = [
+    ...new Map(
+      withPool.map(({ raw: p, pool }) => [
+        rangeKey(pool, p.tickLower, p.tickUpper),
+        { pool, tickLower: p.tickLower, tickUpper: p.tickUpper },
+      ]),
+    ).values(),
+  ]
+  const poolPositions = await readAll(
+    client,
+    ranges.map(({ pool, tickLower, tickUpper }) => ({
+      address: pool,
+      abi: poolPositionAbi,
+      functionName: 'positions' as const,
+      args: [poolPositionKey(manager, tickLower, tickUpper)] as const,
+    })),
+    { label: 'pool positions' },
+  )
+  const poolPositionByRange = new Map(
+    ranges.map(({ pool, tickLower, tickUpper }, i) => [
+      rangeKey(pool, tickLower, tickUpper),
+      poolPositions[i] as readonly bigint[],
+    ]),
+  )
+
   // Token metadata, deduplicated. Non-standard tokens may revert here, and that
   // is survivable: we fall back to the address.
   const tokenAddresses = [
@@ -200,32 +265,32 @@ export async function scanChain(
     const upper = tickData[i * 2 + 1] as readonly unknown[] | undefined
     if (!state || !lower || !upper) return
 
-    const shared = {
-      liquidity: p.liquidity,
-      tickLower: p.tickLower,
-      tickUpper: p.tickUpper,
-      tickCurrent: state.tick,
-    }
+    const range = { tickLower: p.tickLower, tickUpper: p.tickUpper, tickCurrent: state.tick }
 
-    const fees0 = uncollectedFees({
-      ...shared,
+    const inside0 = feeGrowthInside({
+      ...range,
       feeGrowthGlobalX128: state.global0,
       feeGrowthOutsideLowerX128: lower[2] as bigint,
       feeGrowthOutsideUpperX128: upper[2] as bigint,
-      feeGrowthInsideLastX128: p.feeGrowthInside0LastX128,
-      tokensOwed: p.tokensOwed0,
     })
-
-    const fees1 = uncollectedFees({
-      ...shared,
+    const inside1 = feeGrowthInside({
+      ...range,
       feeGrowthGlobalX128: state.global1,
       feeGrowthOutsideLowerX128: lower[3] as bigint,
       feeGrowthOutsideUpperX128: upper[3] as bigint,
-      feeGrowthInsideLastX128: p.feeGrowthInside1LastX128,
-      tokensOwed: p.tokensOwed1,
     })
 
-    if (fees0 === 0n && fees1 === 0n) return
+    let fees0 = feesFromCheckpoint(p.liquidity, inside0, p.feeGrowthInside0LastX128, p.tokensOwed0)
+    let fees1 = feesFromCheckpoint(p.liquidity, inside1, p.feeGrowthInside1LastX128, p.tokensOwed1)
+
+    const poolPosition = poolPositionByRange.get(rangeKey(pool, p.tickLower, p.tickUpper))
+    if (poolPosition) {
+      const [poolLiquidity, poolLast0, poolLast1, poolOwed0, poolOwed1] = poolPosition
+      const cap0 = feesFromCheckpoint(poolLiquidity, inside0, poolLast0, poolOwed0)
+      const cap1 = feesFromCheckpoint(poolLiquidity, inside1, poolLast1, poolOwed1)
+      if (cap0 < fees0) fees0 = cap0
+      if (cap1 < fees1) fees1 = cap1
+    }
 
     positions.push({
       key: `v3-${config.chain.id}-${p.tokenId}`,
