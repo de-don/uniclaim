@@ -222,6 +222,30 @@ looks like a missed upgrade until you know why:
 | `wagmi` | 2.x | RainbowKit's latest release (2.2.11) still peers on `wagmi@^2.9`. Bumping wagmi to 3.x reintroduces the unmet peer this project started out fixing. |
 | `@types/node` | 24.x | The major tracks the Node runtime, and `.nvmrc` pins Node 24. Types for Node 26 would describe APIs this project does not run on. |
 
+### Bundle size
+
+`dist` is around 5.6 MB, which looks alarming and mostly is not: the first load
+pulls **10 chunks, 939 KB raw / 292 KB gzip**, plus 37 KB of CSS. Everything else
+is code-split behind the wallet modal and downloads only for whoever picks that
+particular wallet:
+
+| Lazy weight | Size | Pulled in by |
+| --- | --- | --- |
+| Coinbase Wallet SDK | ~1.4 MB, plus 1.2 MB across 17 locale chunks | choosing Coinbase |
+| WalletConnect / Reown AppKit | ~1.6 MB | choosing a mobile wallet |
+| MetaMask SDK | ~529 KB | choosing MetaMask's SDK flow |
+
+There is no Solana SDK in the bundle, despite `@solana-program/*` and
+`@solana/kit` appearing in the dependency tree under `@wagmi/connectors` — they
+are tree-shaken out. `@solana/kit`, `SystemProgram` and `SOLANA_MAINNET` match
+zero chunks. What does ship is a handful of `case "solana":` branches inside
+Reown AppKit's chain plumbing, in lazy chunks, weighing almost nothing.
+
+An EVM-only build without WalletConnect was measured as a comparison: 5.6 MB →
+4.0 MB on disk, every Solana reference gone — and a first load of 289 KB gzip
+instead of 292 KB. The saving is entirely in code nobody downloads unless they
+ask for that wallet, so the wallet coverage was kept.
+
 ### Security advisories
 
 `pnpm audit` reported one high and four moderate advisories, all transitive
