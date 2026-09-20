@@ -477,3 +477,11 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 }
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
 .switch input { margin: 0; }
+
+/* The Source link sits in the same row as the menu buttons, so it has to shed
+   the anchor defaults that would otherwise underline and recolour it. */
+.menu__item--source {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}

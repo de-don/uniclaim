@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { CHAIN_BY_ID } from '../config/chains'
+import { ISSUES_URL, REPO_URL, SECURITY_URL } from '../config/links'
 import { V4_CHAINS } from '../config/v4'
 
 const V4_CHAIN_NAMES = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name ?? String(v.chainId))
@@ -98,8 +99,24 @@ function Security() {
       <p>
         The contract addresses are pinned per chain, and the app cross-checks them against the chain
         on startup: the v3 factory address is read out of the position manager rather than hardcoded,
-        so a typo cannot silently redirect the maths at some other pool. The source is open — read
-        it, or run it yourself.
+        so a typo cannot silently redirect the maths at some other pool.
+      </p>
+      <p>
+        None of this is worth much on its own, so{' '}
+        <a href={REPO_URL} target="_blank" rel="noreferrer">
+          the full source is public
+        </a>
+        . Every claim on this page is a line of code you can go and read, and the repository ships
+        scripts that check the fee maths against the chain itself rather than asking you to take the
+        numbers on faith. If something looks wrong,{' '}
+        <a href={ISSUES_URL} target="_blank" rel="noreferrer">
+          open an issue
+        </a>{' '}
+        — being told is the point. For anything that looks like a vulnerability, please use{' '}
+        <a href={SECURITY_URL} target="_blank" rel="noreferrer">
+          private reporting
+        </a>{' '}
+        instead of a public issue.
       </p>
 
       <h3>What the v4 explorer lookup can and cannot do</h3>

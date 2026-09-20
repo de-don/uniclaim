@@ -1,5 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { CHAINS } from '../config/chains'
+import { REPO_URL } from '../config/links'
 import { hasWalletConnect } from '../wagmi'
 
 const STEPS = [
@@ -64,8 +65,12 @@ export function Landing({ onOpenInfo }: Props) {
           this line must never regain is the old "no tracking" promise — the
           FAQ's list of outgoing requests is where the full picture lives. */}
       <p className="landing__note">
-        Everything runs in your browser. There is no backend, no account, and no way for this app
-        to move your funds.{' '}
+        Everything runs in your browser. There is no backend, no account, and no way for this app to
+        move your funds — and the{' '}
+        <a className="link" href={REPO_URL} target="_blank" rel="noreferrer">
+          source is public
+        </a>{' '}
+        if you would rather check than take that on faith.{' '}
         <button className="link" onClick={() => onOpenInfo('security')}>
           How that works
         </button>

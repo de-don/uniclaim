@@ -6,6 +6,7 @@ import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
 import { Summary } from './components/Summary'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
+import { REPO_URL } from './config/links'
 import { V4_CHAINS } from './config/v4'
 import { useClaim } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
@@ -131,6 +132,15 @@ export default function App() {
               {item.label}
             </button>
           ))}
+          <a
+            className="menu__item menu__item--source"
+            href={REPO_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source
+            <span aria-hidden="true"> ↗</span>
+          </a>
         </nav>
 
         {/* The full menu does not fit a phone; the panel's own tabs take over from here. */}

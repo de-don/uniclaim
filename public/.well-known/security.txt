@@ -1,6 +1,6 @@
 # https://securitytxt.org — how to report a security issue in UniClaim.
-# Email is the only channel listed on purpose: the source repository is
-# private, so its GitHub advisory form answers 404 to anyone outside it.
+# Please do not open a public issue for a vulnerability; use either channel below.
+Contact: https://github.com/de-don/uniclaim/security/advisories/new
 Contact: mailto:denis.dontsov96@gmail.com
 Expires: 2027-09-20T00:00:00.000Z
 Preferred-Languages: en, ru

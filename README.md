@@ -350,7 +350,8 @@ context and handle SVG unevenly — and the URL is absolute for the same reason.
 prompt where the name, icon and origin agree reads as an application; a blank
 icon and no description is what a phishing page looks like.
 `/.well-known/security.txt` gives researchers somewhere to report, which
-scanners look for.
+scanners look for; private vulnerability reporting is enabled on the repository
+so a reporter has a channel that is not a public issue.
 
 **Outside the code**, and this is the part that actually clears warnings.
 Submission points, each checked to exist rather than copied from memory:
@@ -365,9 +366,9 @@ Submission points, each checked to exist rather than copied from memory:
 Rabby has a dApp directory, but it is not at `rabby.io/dapps` — that URL is a
 404. Reach them through their GitHub or Discord rather than guessing a link.
 
-Two things no submission substitutes for: **domain age**, which is only time,
-and **verifiable source**. The repository being private is itself a trust cost —
-an app arguing that you can check its claims is easier to believe when you can.
+One thing no submission substitutes for: **domain age**, which is only time.
+The other half — verifiable source — is covered: the repository is public, and
+the app links to it from the header, the landing page and the Security panel.
 
 ## Deployment
 
@@ -376,10 +377,11 @@ GitHub Pages target.
 
 `.github/workflows/ci.yml` runs lint, typecheck and build on every push and pull request to `main`.
 
-`.github/workflows/pages.yml` builds the site and deploys it to GitHub Pages. It is currently
-**manual only** (`workflow_dispatch`), because GitHub Pages cannot publish from a private repository
-on the free plan. Make the repository public, or move to a plan that allows private Pages, then
-uncomment the `push` trigger at the top of that file and every merge to `main` deploys itself.
+`.github/workflows/pages.yml` builds the site and deploys it to GitHub Pages. It stays **manual**
+(`workflow_dispatch`) — not because it cannot run now that the repository is public, but because
+Vercel serves `uniclaim.org` and a second live copy of the site would be a duplicate for crawlers
+to weigh against the canonical one. Uncomment the `push` trigger only if Pages becomes the primary
+target.
 
 The build reads its URL prefix from `VITE_BASE`, which the workflow takes from the Pages
 configuration rather than hardcoding — a project site is served from `/<repo>/`, and without the
