@@ -25,8 +25,19 @@ function transportFor(chainId: number, rpcUrls: string[]) {
 export const walletConnectProjectId = import.meta.env.VITE_WC_PROJECT_ID as string | undefined
 export const hasWalletConnect = Boolean(walletConnectProjectId)
 
+/**
+ * What a wallet shows on its approval screen. A prompt with a name, an icon and
+ * a matching origin reads as a real application; one with a blank icon and no
+ * description is what a phishing page looks like, so these are worth filling in
+ * even though they are optional. The icon must be an absolute URL — wallets
+ * fetch it from their own context, not the page's.
+ */
 export const config = getDefaultConfig({
   appName: 'UniClaim',
+  appDescription:
+    'Claim unclaimed Uniswap v3 and v4 fees from every position you own, batched into one transaction per chain.',
+  appUrl: 'https://uniclaim.org',
+  appIcon: 'https://uniclaim.org/icon-512.png',
   projectId: walletConnectProjectId || 'uniclaim-local-dev',
   chains: SUPPORTED_CHAINS,
   transports: Object.fromEntries(

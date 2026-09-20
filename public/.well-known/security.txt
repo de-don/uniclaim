@@ -1,0 +1,6 @@
+# https://securitytxt.org — reporting channel for security issues in UniClaim.
+Contact: https://github.com/de-don/uniclaim/security/advisories/new
+Contact: mailto:denis.dontsov96@gmail.com
+Expires: 2027-09-20T00:00:00.000Z
+Preferred-Languages: en, ru
+Canonical: https://uniclaim.org/.well-known/security.txt
