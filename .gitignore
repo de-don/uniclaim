@@ -7,3 +7,6 @@ dist-ssr
 !.env.example
 .DS_Store
 *.log
+
+# Local scratch list, not part of the repository
+TODO.md
