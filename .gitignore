@@ -10,3 +10,6 @@ dist-ssr
 
 # Local scratch list, not part of the repository
 TODO.md
+
+# JetBrains IDE configuration
+.idea/
