@@ -25,6 +25,7 @@ below. The hosted deployment adds Vercel's page-level analytics — see
 - [Layout](#layout)
 - [Dependencies](#dependencies)
 - [Hosting on Vercel](#hosting-on-vercel)
+- [Wallet trust](#wallet-trust)
 - [Deployment](#deployment)
 - [License](#license)
 
@@ -335,6 +336,38 @@ DefiLlama and the block explorer.
 The distinction worth keeping: not listing every exception up front is fine;
 claiming something you do not do is not. Whatever else changes here, that "no
 tracking" line must not come back while analytics are on.
+
+## Wallet trust
+
+Wallets warn about sites their reputation engines have never seen, and a domain
+registered this month is exactly that. Two halves to fixing it, and only one
+lives in this repository.
+
+**In the code.** The connect config passes `appName`, `appDescription`, `appUrl`
+and `appIcon`, which is what a wallet renders on its approval screen. The icon
+is `icon-512.png` — raster on purpose, since wallet UIs fetch it from their own
+context and handle SVG unevenly — and the URL is absolute for the same reason. A
+prompt where the name, icon and origin agree reads as an application; a blank
+icon and no description is what a phishing page looks like.
+`/.well-known/security.txt` gives researchers somewhere to report, which
+scanners look for.
+
+**Outside the code**, and this is the part that actually clears warnings.
+Submission points, each checked to exist rather than copied from memory:
+
+| Where | Why |
+| --- | --- |
+| [report.blockaid.io](https://report.blockaid.io) | Blockaid powers the warnings in MetaMask and others; this is where a false positive gets appealed. |
+| [app.chainpatrol.io/report](https://app.chainpatrol.io/report) | ChainPatrol feeds allow/block lists used across several wallets. |
+| [scamsniffer.io](https://scamsniffer.io) | Widely used phishing detection; has a contact route for false positives. |
+| [walletguard.app](https://www.walletguard.app) | Same, for the Wallet Guard extension. |
+
+Rabby has a dApp directory, but it is not at `rabby.io/dapps` — that URL is a
+404. Reach them through their GitHub or Discord rather than guessing a link.
+
+Two things no submission substitutes for: **domain age**, which is only time,
+and **verifiable source**. The repository being private is itself a trust cost —
+an app arguing that you can check its claims is easier to believe when you can.
 
 ## Deployment
 
