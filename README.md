@@ -358,18 +358,22 @@ icon and no description is what a phishing page looks like.
 scanners look for; private vulnerability reporting is enabled on the repository
 so a reporter has a channel that is not a public issue.
 
-**Outside the code**, and this is the part that actually clears warnings.
-Submission points, each checked to exist rather than copied from memory:
+**Outside the code.** First, know which problem you have. Checked on
+2026-09-21, this domain is absent from ChainPatrol, from MetaMask's
+eth-phishing-detect blocklist (101,326 entries) and from ScamSniffer's
+(355,213 domains). Nothing has flagged it.
 
-| Where | Why |
-| --- | --- |
-| [report.blockaid.io](https://report.blockaid.io) | Blockaid powers the warnings in MetaMask and others; this is where a false positive gets appealed. |
-| [app.chainpatrol.io/report](https://app.chainpatrol.io/report) | ChainPatrol feeds allow/block lists used across several wallets. |
-| [scamsniffer.io](https://scamsniffer.io) | Widely used phishing detection; has a contact route for false positives. |
-| [walletguard.app](https://www.walletguard.app) | Same, for the Wallet Guard extension. |
+That matters, because the appeal routes — [report.blockaid.io](https://report.blockaid.io),
+[app.chainpatrol.io/report](https://app.chainpatrol.io/report) — exist to remove
+a flag. With no flag there is nothing to appeal, and filing anyway just wastes a
+reviewer's time. Keep them for if a real false positive ever appears.
 
-Rabby has a dApp directory, but it is not at `rabby.io/dapps` — that URL is a
-404. Reach them through their GitHub or Discord rather than guessing a link.
+What wallets actually say here is milder. Rabby reports "not listed on any
+community platforms" and "very low popularity" — its informational panel, driven
+by whether a site is known, not by whether it is dangerous. The first line is
+answered by getting listed in dapp directories, the second only by people using
+the site. Both take months for a new domain, and no submission shortcuts the
+second one.
 
 One thing no submission substitutes for: **domain age**, which is only time.
 The other half — verifiable source — is covered: the repository is public, and
