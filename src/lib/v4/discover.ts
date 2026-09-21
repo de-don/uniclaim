@@ -5,6 +5,43 @@ import { readAll } from '../multicall'
 
 const PAGE_LIMIT = 8
 
+/**
+ * How long an explorer answer may be reused. Short on purpose: the cache can
+ * only ever *omit* a position, never invent one — ids are still checked against
+ * `ownerOf`, so a stale entry is discarded — but omitting a position someone
+ * just minted is the one way this can mislead. Refresh bypasses it entirely.
+ */
+const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_PREFIX = 'uniclaim.v4ids.'
+
+type CacheEntry = { at: number; ids: string[] }
+
+function cacheKey(chainId: number, owner: string) {
+  return `${CACHE_PREFIX}${chainId}.${owner.toLowerCase()}`
+}
+
+function readCache(chainId: number, owner: string): bigint[] | undefined {
+  try {
+    const raw = localStorage.getItem(cacheKey(chainId, owner))
+    if (!raw) return undefined
+    const entry = JSON.parse(raw) as CacheEntry
+    if (Date.now() - entry.at > CACHE_TTL_MS) return undefined
+    return entry.ids.map(BigInt)
+  } catch {
+    // Blocked or corrupt storage just means no cache; never a failure.
+    return undefined
+  }
+}
+
+function writeCache(chainId: number, owner: string, ids: bigint[]) {
+  try {
+    const entry: CacheEntry = { at: Date.now(), ids: ids.map(String) }
+    localStorage.setItem(cacheKey(chainId, owner), JSON.stringify(entry))
+  } catch {
+    // Storage full or unavailable — the scan is unaffected.
+  }
+}
+
 type NftItem = {
   id?: string
   token?: { address?: string; address_hash?: string }
@@ -52,13 +89,21 @@ async function candidateIds(config: V4Config, owner: `0x${string}`): Promise<big
   return ids
 }
 
-/** Explorer-suggested ids, filtered down to the ones the chain confirms are owned. */
+/**
+ * Explorer-suggested ids, filtered down to the ones the chain confirms are owned.
+ *
+ * `fresh` skips the cache; the Refresh button sets it, so there is always a way
+ * to see a position minted in the last few minutes.
+ */
 export async function discoverV4TokenIds(
   client: PublicClient,
   config: V4Config,
   owner: `0x${string}`,
+  options: { fresh?: boolean } = {},
 ): Promise<bigint[]> {
-  const candidates = await candidateIds(config, owner)
+  const cached = options.fresh ? undefined : readCache(config.chainId, owner)
+  const candidates = cached ?? (await candidateIds(config, owner))
+  if (!cached) writeCache(config.chainId, owner, candidates)
   if (candidates.length === 0) return []
 
   const owners = await readAll(

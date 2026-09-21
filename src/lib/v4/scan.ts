@@ -61,8 +61,14 @@ export async function scanChainV4(
   chainConfig: ChainConfig,
   v4: V4Config,
   owner: `0x${string}`,
+  options: { fresh?: boolean } = {},
 ): Promise<Position[]> {
-  return scanV4TokenIds(client, chainConfig, v4, await discoverV4TokenIds(client, v4, owner))
+  return scanV4TokenIds(
+    client,
+    chainConfig,
+    v4,
+    await discoverV4TokenIds(client, v4, owner, options),
+  )
 }
 
 /**

@@ -109,6 +109,11 @@ CORS-enabled source of that list is a public Blockscout instance, so candidate i
 and are then confirmed against `ownerOf` on chain. The explorer is treated as an untrusted hint: it
 returns numbers, every number is verified, and a wrong answer can only cost a lookup.
 
+That answer is cached per (chain, address) for five minutes, so a reload does not re-query the
+explorer. The cache can only ever omit a position, never invent one — ids are still checked against
+`ownerOf`, so a stale entry is discarded — and omitting a freshly minted position is the one way it
+could mislead, which is why Refresh bypasses it outright and the window is short.
+
 Alternatives that were measured and rejected:
 
 | Source | Why not |

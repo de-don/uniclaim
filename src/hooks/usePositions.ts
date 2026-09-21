@@ -26,7 +26,8 @@ export function usePositions(owner: `0x${string}` | undefined) {
     setScans((prev) => prev.map((s) => (s.chainId === chainId ? { ...s, ...patch } : s)))
   }, [])
 
-  const scan = useCallback(async () => {
+  /** `fresh` skips the v4 discovery cache; the Refresh button always does. */
+  const scan = useCallback(async (fresh = false) => {
     if (!owner) return
     const currentRun = ++runId.current
     setScans(
@@ -48,7 +49,9 @@ export function usePositions(owner: `0x${string}` | undefined) {
         // v3 and v4 are independent lookups; one failing must not hide the other.
         const [v3Result, v4Result] = await Promise.allSettled([
           scanChain(client, chainConfig, owner),
-          v4 ? scanChainV4(client, chainConfig, v4, owner) : Promise.resolve([] as Position[]),
+          v4
+            ? scanChainV4(client, chainConfig, v4, owner, { fresh })
+            : Promise.resolve([] as Position[]),
         ])
 
         if (runId.current !== currentRun) return [] as Position[]
@@ -117,7 +120,7 @@ export function usePositions(owner: `0x${string}` | undefined) {
   return {
     scans: owner ? scans : initialScans(),
     isScanning: owner ? isScanning : false,
-    rescan: scan,
+    rescan: () => scan(true),
     removePositions,
   }
 }
