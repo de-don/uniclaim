@@ -86,7 +86,7 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
       <div className="row__usd">{claimable ? formatUsd(position.usd) : '—'}</div>
 
       <button
-        className="btn btn--ghost"
+        className="btn btn--ghost row__claim"
         onClick={() => onClaim(position)}
         disabled={busy || !claimable}
         title={claimable ? undefined : 'Nothing to claim on this position'}
