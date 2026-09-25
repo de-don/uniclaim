@@ -33,8 +33,10 @@ function readHideEmpty(): boolean {
 
 export default function App() {
   const { address, isConnected } = useAccount()
-  const { scans, isScanning, rescan, removePositions } = usePositions(address)
   const { claim, state: claimState } = useClaim()
+  const { scans, isScanning, rescan, removePositions } = usePositions(address, {
+    paused: ['switching', 'signing', 'pending'].includes(claimState.status),
+  })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [infoTab, setInfoTab] = useState<InfoTab | null>(null)
   const [hideEmpty, setHideEmpty] = useState(readHideEmpty)
