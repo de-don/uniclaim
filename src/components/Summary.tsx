@@ -1,6 +1,7 @@
 import { formatUsd } from '../lib/format'
 import { hasFees } from '../lib/links'
 import type { Position } from '../lib/types'
+import { RollingNumber } from './RollingNumber'
 
 /**
  * Below this, a position's fees are not worth a transaction — and a wallet that
@@ -46,7 +47,9 @@ export function Summary({ positions, chainCount }: Props) {
       {tiles.map((tile) => (
         <div key={tile.label} title={tile.title}>
           <span className="summary__label">{tile.label}</span>
-          <span className="summary__value">{tile.value}</span>
+          <span className="summary__value">
+            <RollingNumber value={tile.value} />
+          </span>
         </div>
       ))}
     </div>

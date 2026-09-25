@@ -35,7 +35,7 @@ export function usePositions(owner: `0x${string}` | undefined) {
     )
     setIsScanning(true)
 
-    const all = await Promise.all(
+    await Promise.all(
       CHAINS.map(async (chainConfig) => {
         const chainId = chainConfig.chain.id
         const v4 = V4_BY_CHAIN.get(chainId)
@@ -43,7 +43,7 @@ export function usePositions(owner: `0x${string}` | undefined) {
         const client = getPublicClient(config, { chainId }) as PublicClient | undefined
         if (!client) {
           update(chainId, { status: 'error', error: 'No RPC client for this chain', skipped: 0 })
-          return [] as Position[]
+          return
         }
 
         // v3 and v4 are independent lookups; one failing must not hide the other.
@@ -54,48 +54,54 @@ export function usePositions(owner: `0x${string}` | undefined) {
             : Promise.resolve([] as Position[]),
         ])
 
-        if (runId.current !== currentRun) return [] as Position[]
+        if (runId.current !== currentRun) return
 
         const v4Positions = v4Result.status === 'fulfilled' ? v4Result.value : []
         const v4Error =
           v4Result.status === 'rejected' ? describe(v4Result.reason) : undefined
 
+        const positions =
+          v3Result.status === 'rejected'
+            ? v4Positions
+            : [...v3Result.value.positions, ...v4Positions]
+
         if (v3Result.status === 'rejected') {
           update(chainId, {
             status: v4Positions.length > 0 ? 'done' : 'error',
             error: describe(v3Result.reason),
-            positions: v4Positions,
+            positions,
             skipped: 0,
             v4Error,
           })
-          return v4Positions
+        } else {
+          update(chainId, {
+            status: 'done',
+            positions,
+            skipped: v3Result.value.skipped,
+            v4Error,
+          })
         }
 
-        const positions = [...v3Result.value.positions, ...v4Positions]
-        update(chainId, {
-          status: 'done',
-          positions,
-          skipped: v3Result.value.skipped,
-          v4Error,
-        })
-        return positions
+        // Priced per chain, as each one lands, so the USD total climbs alongside
+        // the position counts instead of sitting at zero until the slowest RPC
+        // answers.
+        if (positions.length === 0) return
+        const prices = await fetchPrices(positions)
+        if (runId.current !== currentRun) return
+        // Mapped over what is in state now, not `positions`: a claim made while
+        // prices were loading has already removed some of them.
+        setScans((prev) =>
+          prev.map((s) =>
+            s.chainId === chainId
+              ? { ...s, positions: s.positions.map((p) => ({ ...p, usd: positionUsd(p, prices) })) }
+              : s,
+          ),
+        )
       }),
     )
 
     if (runId.current !== currentRun) return
     setIsScanning(false)
-
-    const flat = all.flat()
-    if (flat.length === 0) return
-
-    const prices = await fetchPrices(flat)
-    if (runId.current !== currentRun) return
-    setScans((prev) =>
-      prev.map((s) => ({
-        ...s,
-        positions: s.positions.map((p) => ({ ...p, usd: positionUsd(p, prices) })),
-      })),
-    )
   }, [owner, update])
 
   useEffect(() => {
