@@ -6,11 +6,11 @@ import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
 import { Summary } from './components/Summary'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
-import { REPO_URL } from './config/links'
+import { REPO_URL, SECURITY_URL } from './config/links'
 import { V4_CHAINS } from './config/v4'
 import { useClaim } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
-import { hasFees } from './lib/links'
+import { byValue, hasFees, pricedUsd } from './lib/links'
 import { MAX_POSITIONS } from './lib/scan'
 import type { Position } from './lib/types'
 
@@ -57,9 +57,12 @@ export default function App() {
     () =>
       CHAINS.map((config) => {
         const scan = scans.find((s) => s.chainId === config.chain.id)
-        const positions = scan?.positions ?? []
+        const positions = [...(scan?.positions ?? [])].sort(byValue)
         return { config, visible: hideEmpty ? positions.filter(hasFees) : positions }
-      }).filter((g) => g.visible.length > 0),
+      })
+        .filter((g) => g.visible.length > 0)
+        // Richest chain first; the stable sort keeps config order among equals.
+        .sort((a, b) => pricedUsd(b.visible) - pricedUsd(a.visible)),
     [scans, hideEmpty],
   )
 
@@ -254,6 +257,26 @@ export default function App() {
           </>
         )}
       </main>
+
+      <footer className="sitefoot">
+        <a href={REPO_URL} target="_blank" rel="noreferrer">
+          Source
+        </a>
+        {__COMMIT_SHA__ && (
+          <a
+            href={`${REPO_URL}/commit/${__COMMIT_SHA__}`}
+            target="_blank"
+            rel="noreferrer"
+            title="The commit this page was built from"
+          >
+            Build <code>{__COMMIT_SHA__.slice(0, 7)}</code>
+          </a>
+        )}
+        <a href={SECURITY_URL} target="_blank" rel="noreferrer">
+          Report a vulnerability
+        </a>
+        <span className="sitefoot__claims">No contracts of its own · no approvals · no backend</span>
+      </footer>
 
       {selectedPositions.length > 0 && (
         <footer className="actionbar">
