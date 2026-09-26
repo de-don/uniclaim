@@ -1,6 +1,6 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useAccountEffect } from 'wagmi'
 import { ChainGroup } from './components/ChainGroup'
 import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
@@ -10,6 +10,8 @@ import { REPO_URL, SECURITY_URL } from './config/links'
 import { V4_CHAINS } from './config/v4'
 import { useClaim } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
+import { useWatchedAddress } from './hooks/useWatchedAddress'
+import { shortAddress } from './lib/format'
 import { byValue, hasFees, pricedUsd } from './lib/links'
 import { MAX_POSITIONS } from './lib/scan'
 import type { Position } from './lib/types'
@@ -32,14 +34,38 @@ function readHideEmpty(): boolean {
 }
 
 export default function App() {
-  const { address, isConnected } = useAccount()
+  const { address } = useAccount()
+  const watched = useWatchedAddress()
+  // Connecting is a request to act as that wallet, so it ends any lookup.
+  useAccountEffect({ onConnect: ({ isReconnected }) => !isReconnected && watched.clear() })
+  // While a lookup is resolving or has failed, falling back to the connected
+  // wallet would quietly show the wrong address's positions under the name
+  // that was asked for; the landing page shows the lookup's state instead.
+  const owner = watched.query ? watched.address : address
+  // Claims pay out to the position's owner and only the owner may send them,
+  // so a looked-up address other than the connected one is view-only.
+  const readOnly = Boolean(owner) && owner?.toLowerCase() !== address?.toLowerCase()
   const { claim, state: claimState } = useClaim()
-  const { scans, isScanning, rescan, removePositions } = usePositions(address, {
+  const { scans, isScanning, rescan, removePositions } = usePositions(owner, {
     paused: ['switching', 'signing', 'pending'].includes(claimState.status),
   })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [infoTab, setInfoTab] = useState<InfoTab | null>(null)
   const [hideEmpty, setHideEmpty] = useState(readHideEmpty)
+  const [copied, setCopied] = useState(false)
+
+  const copyLink = useCallback(async () => {
+    if (!owner) return
+    const target = watched.name ?? owner
+    const link = `${window.location.origin}${window.location.pathname}#address=${encodeURIComponent(target)}`
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard blocked: the address bar already holds the same link.
+    }
+  }, [owner, watched.name])
 
   useEffect(() => {
     try {
@@ -154,7 +180,7 @@ export default function App() {
         </button>
 
         <div className="topbar__right">
-          {isConnected && (
+          {owner && (
             <button className="btn btn--ghost" onClick={() => void rescan()} disabled={isScanning}>
               {isScanning ? 'Scanning…' : 'Refresh'}
             </button>
@@ -167,10 +193,39 @@ export default function App() {
       </header>
 
       <main className="main">
-        {!isConnected ? (
-          <Landing onOpenInfo={setInfoTab} />
+        {!owner ? (
+          <Landing
+            onOpenInfo={setInfoTab}
+            onLookup={watched.watch}
+            lookupStatus={watched.status}
+            lookupError={watched.error}
+            lookupQuery={watched.query}
+          />
         ) : (
           <>
+            {readOnly && owner && (
+              <div className="banner banner--watch">
+                <span>
+                  Viewing{' '}
+                  <strong title={owner}>
+                    {watched.name ? `${watched.name} (${shortAddress(owner)})` : shortAddress(owner)}
+                  </strong>{' '}
+                  read-only.{' '}
+                  {address
+                    ? 'Your connected wallet is a different address, so claiming is off here.'
+                    : 'Connect this wallet to claim.'}
+                </span>
+                <span className="banner__actions">
+                  <button className="link" onClick={() => void copyLink()}>
+                    {copied ? 'Link copied' : 'Copy link'}
+                  </button>
+                  <button className="link" onClick={watched.clear}>
+                    {address ? 'Back to my wallet' : 'Stop viewing'}
+                  </button>
+                </span>
+              </div>
+            )}
+
             <Summary positions={allPositions} chainCount={groups.length} />
 
             {allPositions.length > 0 && (
@@ -241,6 +296,7 @@ export default function App() {
                 onToggleChain={toggleChain}
                 onClaim={(chainId, positions) => void runClaim(chainId, positions)}
                 claimState={claimState}
+                readOnly={readOnly}
               />
             ))}
 
@@ -278,7 +334,7 @@ export default function App() {
         <span className="sitefoot__claims">No contracts of its own · no approvals · no backend</span>
       </footer>
 
-      {selectedPositions.length > 0 && (
+      {!readOnly && selectedPositions.length > 0 && (
         <footer className="actionbar">
           <span>
             {selectedPositions.length} selected across{' '}

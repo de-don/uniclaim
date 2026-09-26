@@ -13,6 +13,8 @@ type Props = {
   onToggleChain: (chainId: number, next: boolean) => void
   onClaim: (chainId: number, positions: Position[]) => void
   claimState: ClaimState
+  /** Someone else's positions, looked up by address: shown, never claimable from here. */
+  readOnly?: boolean
 }
 
 export function ChainGroup({
@@ -23,6 +25,7 @@ export function ChainGroup({
   onToggleChain,
   onClaim,
   claimState,
+  readOnly = false,
 }: Props) {
   const chainId = config.chain.id
   // Rows with nothing to claim are shown for completeness, but every action
@@ -61,7 +64,7 @@ export function ChainGroup({
           <input
             type="checkbox"
             checked={allSelected}
-            disabled={claimable.length === 0}
+            disabled={readOnly || claimable.length === 0}
             onChange={(e) => onToggleChain(chainId, e.target.checked)}
             aria-label={`Select all positions on ${config.chain.name}`}
           />
@@ -75,21 +78,23 @@ export function ChainGroup({
         </span>
         <span className="group__usd">{formatUsd(totalUsd)}</span>
 
-        <div className="group__actions">
-          {selectedHere.length > 0 && selectedHere.length < claimable.length && (
-            <button className="btn" onClick={() => onClaim(chainId, selectedHere)} disabled={busy}>
-              Claim selected ({selectedHere.length})
+        {!readOnly && (
+          <div className="group__actions">
+            {selectedHere.length > 0 && selectedHere.length < claimable.length && (
+              <button className="btn" onClick={() => onClaim(chainId, selectedHere)} disabled={busy}>
+                Claim selected ({selectedHere.length})
+              </button>
+            )}
+            <button
+              className="btn btn--primary"
+              onClick={() => onClaim(chainId, claimable)}
+              disabled={busy || claimable.length === 0}
+              title={txReason}
+            >
+              {busy ? 'Sending…' : `Claim all (${claimable.length})`}
             </button>
-          )}
-          <button
-            className="btn btn--primary"
-            onClick={() => onClaim(chainId, claimable)}
-            disabled={busy || claimable.length === 0}
-            title={txReason}
-          >
-            {busy ? 'Sending…' : `Claim all (${claimable.length})`}
-          </button>
-        </div>
+          </div>
+        )}
       </header>
 
       {claimState.chainId === chainId && claimState.status !== 'idle' && (
@@ -117,6 +122,7 @@ export function ChainGroup({
             onToggle={onToggle}
             onClaim={(p) => onClaim(chainId, [p])}
             busy={busy}
+            readOnly={readOnly}
           />
         ))}
       </div>

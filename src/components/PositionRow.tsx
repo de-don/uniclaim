@@ -8,9 +8,10 @@ type Props = {
   onToggle: (key: string) => void
   onClaim: (position: Position) => void
   busy: boolean
+  readOnly?: boolean
 }
 
-export function PositionRow({ position, selected, onToggle, onClaim, busy }: Props) {
+export function PositionRow({ position, selected, onToggle, onClaim, busy, readOnly }: Props) {
   // A v4 pool may route through a hook contract; worth surfacing, since it is
   // the one thing that can make an otherwise ordinary pool behave differently.
   const hasHook = Boolean(position.hooks && BigInt(position.hooks) !== 0n)
@@ -24,7 +25,7 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
           type="checkbox"
           checked={selected}
           onChange={() => onToggle(position.key)}
-          disabled={!claimable}
+          disabled={readOnly || !claimable}
           aria-label={`Select position ${position.tokenId}`}
           title={claimable ? undefined : 'Nothing to claim on this position'}
         />
@@ -88,8 +89,14 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy }: Pro
       <button
         className="btn btn--ghost row__claim"
         onClick={() => onClaim(position)}
-        disabled={busy || !claimable}
-        title={claimable ? undefined : 'Nothing to claim on this position'}
+        disabled={busy || readOnly || !claimable}
+        title={
+          readOnly
+            ? 'Only the owner can claim — connect this wallet'
+            : claimable
+              ? undefined
+              : 'Nothing to claim on this position'
+        }
       >
         Claim
       </button>
