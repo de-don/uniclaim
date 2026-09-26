@@ -2,13 +2,15 @@ import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, useAccountEffect } from 'wagmi'
 import { ChainGroup } from './components/ChainGroup'
+import { ClaimReceipt } from './components/ClaimReceipt'
+import { ClaimReview, type ClaimSelection } from './components/ClaimReview'
 import { InfoPanel, type InfoTab } from './components/InfoPanel'
 import { Landing } from './components/Landing'
 import { Summary } from './components/Summary'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
 import { REPO_URL, SECURITY_URL } from './config/links'
 import { V4_CHAINS } from './config/v4'
-import { useClaim } from './hooks/useClaim'
+import { useClaim, type ClaimResult } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
 import { useWatchedAddress } from './hooks/useWatchedAddress'
 import { shortAddress } from './lib/format'
@@ -49,10 +51,32 @@ export default function App() {
   const { scans, isScanning, rescan, removePositions } = usePositions(owner, {
     paused: ['switching', 'signing', 'pending'].includes(claimState.status),
   })
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  // A selection belongs to the address it was made for; looking at another one
+  // starts empty rather than showing ticks carried over from elsewhere.
+  const [selection, setSelection] = useState<{ owner?: string; keys: Set<string> }>({
+    keys: new Set(),
+  })
+  const selected = useMemo(
+    () => (selection.owner === owner ? selection.keys : new Set<string>()),
+    [selection, owner],
+  )
+  const setSelected = useCallback(
+    (update: (prev: Set<string>) => Set<string>) =>
+      setSelection((prev) => ({
+        owner,
+        keys: update(prev.owner === owner ? prev.keys : new Set()),
+      })),
+    [owner],
+  )
   const [infoTab, setInfoTab] = useState<InfoTab | null>(null)
   const [hideEmpty, setHideEmpty] = useState(readHideEmpty)
   const [copied, setCopied] = useState(false)
+  /** Tied to the owner it was opened for, so switching address cannot leave it simulating someone else's positions. */
+  const [review, setReview] = useState<{ owner: string; selection: ClaimSelection } | null>(null)
+  /** Progress through a claim that spans several chains, one wallet prompt each. */
+  const [sweep, setSweep] = useState<{ chains: number[]; index: number } | null>(null)
+  /** The outcome of each chain's latest claim, kept above the list until dismissed. */
+  const [receipts, setReceipts] = useState<ClaimResult[]>([])
 
   const copyLink = useCallback(async () => {
     if (!owner) return
@@ -109,7 +133,7 @@ export default function App() {
       else next.add(key)
       return next
     })
-  }, [])
+  }, [setSelected])
 
   const toggleChain = useCallback(
     (chainId: number, on: boolean) => {
@@ -124,30 +148,61 @@ export default function App() {
         return next
       })
     },
-    [feePositions],
+    [feePositions, setSelected],
   )
 
-  const runClaim = useCallback(
-    async (chainId: number, positions: Position[]) => {
-      const claimed = await claim(chainId, positions)
-      if (claimed.length === 0) return
-      const keys = new Set(claimed.map((p) => p.key))
-      removePositions(keys)
-      setSelected((prev) => new Set([...prev].filter((k) => !keys.has(k))))
+  /** Every Claim button lands here: nothing reaches the wallet before the review. */
+  const claimBusy = sweep !== null || ['switching', 'signing', 'pending'].includes(claimState.status)
+
+  const requestClaim = useCallback(
+    (chainId: number, positions: Position[]) => {
+      if (!claimBusy && owner) setReview({ owner, selection: [{ chainId, positions }] })
     },
-    [claim, removePositions],
+    [claimBusy, owner],
   )
 
   /** A selection can span chains, and each chain still needs its own transaction. */
-  const claimSelectedEverywhere = useCallback(async () => {
+  const requestClaimSelected = useCallback(() => {
+    if (claimBusy || !owner) return
     const byChain = new Map<number, Position[]>()
     for (const position of selectedPositions) {
       byChain.set(position.chainId, [...(byChain.get(position.chainId) ?? []), position])
     }
-    for (const [chainId, positions] of byChain) {
-      await runClaim(chainId, positions)
-    }
-  }, [runClaim, selectedPositions])
+    // In the order the chains are listed on the page, richest first.
+    const order = groups.map((g) => g.config.chain.id)
+    setReview({
+      owner,
+      selection: [...byChain]
+        .sort(([a], [b]) => order.indexOf(a) - order.indexOf(b))
+        .map(([chainId, positions]) => ({ chainId, positions })),
+    })
+  }, [claimBusy, groups, owner, selectedPositions])
+
+  const runSelection = useCallback(
+    async (selection: ClaimSelection) => {
+      const chains = selection.map((s) => s.chainId)
+      for (const [index, { chainId, positions }] of selection.entries()) {
+        if (chains.length > 1) setSweep({ chains, index })
+        const result = await claim(chainId, positions)
+        setReceipts((prev) => [result, ...prev.filter((r) => r.chainId !== chainId)])
+        if (result.claimed.length > 0) {
+          const keys = new Set(result.claimed.map((p) => p.key))
+          removePositions(keys)
+          setSelected((prev) => new Set([...prev].filter((k) => !keys.has(k))))
+        }
+      }
+      setSweep(null)
+    },
+    [claim, removePositions, setSelected],
+  )
+
+  const confirmReview = useCallback(() => {
+    if (!review || review.owner !== owner) return
+    setReview(null)
+    void runSelection(review.selection)
+  }, [owner, review, runSelection])
+
+  const closeReview = useCallback(() => setReview(null), [])
 
   return (
     <div className="app">
@@ -226,6 +281,16 @@ export default function App() {
               </div>
             )}
 
+            {receipts.map((receipt) => (
+              <ClaimReceipt
+                key={receipt.chainId}
+                result={receipt}
+                onDismiss={() =>
+                  setReceipts((prev) => prev.filter((r) => r.chainId !== receipt.chainId))
+                }
+              />
+            ))}
+
             <Summary positions={allPositions} chainCount={groups.length} />
 
             {allPositions.length > 0 && (
@@ -245,7 +310,39 @@ export default function App() {
             {isScanning && (
               <div className="scanbar">
                 <div className="scanbar__fill" />
-                <span>Scanning {CHAINS.length} chains — results appear as each node replies</span>
+                <span>
+                  Scanning {CHAINS.length} chains — {scans.filter((s) => s.status !== 'loading').length}{' '}
+                  answered so far
+                </span>
+                {/* Each chain reported as it answers: "we checked Base" is worth
+                    seeing, and so is the one node that is still thinking. */}
+                <div className="chips">
+                  {CHAINS.map((config) => {
+                    const scan = scans.find((s) => s.chainId === config.chain.id)
+                    const count = scan?.positions.length ?? 0
+                    const state =
+                      !scan || scan.status === 'loading' || scan.status === 'idle'
+                        ? 'loading'
+                        : scan.status === 'error'
+                          ? 'error'
+                          : count > 0
+                            ? 'found'
+                            : 'empty'
+                    return (
+                      <span
+                        key={config.chain.id}
+                        className={`chip chip--${state}`}
+                        title={state === 'error' ? scan?.error : undefined}
+                      >
+                        <span className="chip__dot" style={{ background: config.color }} />
+                        {config.chain.name}
+                        {state === 'found' && ` · ${count}`}
+                        {state === 'empty' && ' · none'}
+                        {state === 'error' && ' · failed'}
+                      </span>
+                    )
+                  })}
+                </div>
               </div>
             )}
 
@@ -294,7 +391,7 @@ export default function App() {
                 selected={selected}
                 onToggle={toggle}
                 onToggleChain={toggleChain}
-                onClaim={(chainId, positions) => void runClaim(chainId, positions)}
+                onClaim={requestClaim}
                 claimState={claimState}
                 readOnly={readOnly}
               />
@@ -334,16 +431,48 @@ export default function App() {
         <span className="sitefoot__claims">No contracts of its own · no approvals · no backend</span>
       </footer>
 
-      {!readOnly && selectedPositions.length > 0 && (
+      {sweep ? (
         <footer className="actionbar">
           <span>
-            {selectedPositions.length} selected across{' '}
-            {new Set(selectedPositions.map((p) => p.chainId)).size} chains
+            Chain {sweep.index + 1} of {sweep.chains.length} ·{' '}
+            <strong>{CHAIN_BY_ID.get(sweep.chains[sweep.index])?.chain.name}</strong> —{' '}
+            {claimState.status === 'switching' && 'switch network in your wallet'}
+            {claimState.status === 'signing' && 'confirm in your wallet'}
+            {claimState.status === 'pending' && 'waiting for the transaction to land'}
+            {['success', 'cancelled', 'error', 'idle'].includes(claimState.status) && 'moving on…'}
           </span>
-          <button className="btn btn--primary" onClick={() => void claimSelectedEverywhere()}>
-            Claim selected
-          </button>
+          <span className="actionbar__steps" aria-hidden="true">
+            {sweep.chains.map((chainId, i) => (
+              <span
+                key={chainId}
+                className={`actionbar__step ${i < sweep.index ? 'actionbar__step--done' : ''} ${i === sweep.index ? 'actionbar__step--now' : ''}`}
+                style={{ background: CHAIN_BY_ID.get(chainId)?.color }}
+              />
+            ))}
+          </span>
         </footer>
+      ) : (
+        !readOnly &&
+        selectedPositions.length > 0 && (
+          <footer className="actionbar">
+            <span>
+              {selectedPositions.length} selected across{' '}
+              {new Set(selectedPositions.map((p) => p.chainId)).size} chains
+            </span>
+            <button className="btn btn--primary" onClick={requestClaimSelected}>
+              Review and claim
+            </button>
+          </footer>
+        )
+      )}
+
+      {review && owner && !readOnly && review.owner === owner && (
+        <ClaimReview
+          owner={owner}
+          selection={review.selection}
+          onConfirm={confirmReview}
+          onClose={closeReview}
+        />
       )}
 
       {infoTab && <InfoPanel tab={infoTab} onTab={setInfoTab} onClose={() => setInfoTab(null)} />}
