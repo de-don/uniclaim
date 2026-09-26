@@ -101,7 +101,7 @@ body {
 }
 .lookup__input:focus { outline: none; border-color: var(--accent); }
 .lookup__error { color: var(--red); font-size: 13px; margin: 0; }
-
+.lookup__ok { color: var(--green); font-size: 13px; margin: 0; }
 /* ---------- summary ---------- */
 .summary {
   display: grid;
@@ -369,6 +369,26 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
   animation: fade 0.16s ease-out;
 }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.overlay--center { justify-content: center; align-items: center; padding: 16px; }
+
+/* ---------- dialog ---------- */
+.dialog {
+  width: min(480px, 100%);
+  display: grid;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  animation: pop 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes pop { from { transform: translateY(8px) scale(0.98); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.dialog__head { display: flex; align-items: center; justify-content: space-between; margin: -4px -8px -4px 0; }
+.dialog__title { margin: 0; font-size: 17px; }
+.dialog__text { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.dialog__foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.dialog .lookup__input { width: 100%; }
+.dialog .lookup__input:disabled { opacity: 0.6; }
 
 .panel {
   width: min(560px, 100%);

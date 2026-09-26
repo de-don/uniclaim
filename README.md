@@ -45,15 +45,19 @@ after running it against the chain.
 | Polygon | ✅ | ✅ |
 | Base | ✅ | ✅ |
 | Robinhood Chain | ✅ | ✅ |
-| BNB Chain | ✅ | — |
-| Avalanche | ✅ | — |
-| Blast | ✅ | — |
+| Avalanche | ✅ | ✅ |
+| Blast | ✅ | ✅ |
+| BNB Chain | ✅ | 🔗 by link |
 | Celo | ✅ | — |
 
-v4 is deployed on BNB Chain, Avalanche and Blast, but none of them has a public explorer that can
-list an address's NFTs without an API key, so positions there cannot be discovered — and the app
-says so rather than showing an empty list. On Celo no v4 position manager was found at all. Either
-way those chains still show every v3 position.
+v4 positions are found automatically wherever something lists an address's NFTs without an API
+key: a public Blockscout instance on six chains, and Routescan's etherscan-compatible API on
+Avalanche and Blast. BNB Chain has neither — no Blockscout, not covered by Routescan, BscScan needs a
+key, and public nodes refuse `eth_getLogs` past a few thousand blocks — so there a v4 position is
+added by pasting its app.uniswap.org link under the list. The app checks `ownerOf` straight away,
+remembers the id in that browser, and from then on scans it like any other; the same works on any
+chain where a lookup misses one. On Celo no v4 position manager was found at all. Every chain shows
+every v3 position regardless.
 
 Contract addresses are pinned per chain, but never assumed: the v3 factory is read out of the
 position manager itself, so a typo in one constant cannot silently redirect the maths at some other
@@ -125,10 +129,14 @@ For v3: `NonfungiblePositionManager.balanceOf` → `tokenOfOwnerByIndex` → `po
 all batched through Multicall3.
 
 v4 is not enumerable — its position manager is not ERC721Enumerable, so there is no
-`tokenOfOwnerByIndex` and no contract call that lists what an address holds. The only key-free,
-CORS-enabled source of that list is a public Blockscout instance, so candidate ids come from there
+`tokenOfOwnerByIndex` and no contract call that lists what an address holds. Candidate ids
+therefore come from a key-free, CORS-enabled explorer — Blockscout's NFT holdings endpoint, or
+Routescan's `tokennfttx` (every id ever transferred to the address) — plus any ids pasted by link,
 and are then confirmed against `ownerOf` on chain. The explorer is treated as an untrusted hint: it
 returns numbers, every number is verified, and a wrong answer can only cost a lookup.
+
+A v4 position with liquidity but nothing accrued is listed, greyed out, exactly like a v3 one; only
+a position with neither liquidity nor fees is dropped.
 
 That answer is cached per (chain, address) for five minutes, so a reload does not re-query the
 explorer. The cache can only ever omit a position, never invent one — ids are still checked against
@@ -236,7 +244,8 @@ so the script tests the maths rather than a third-party service.
 
 - **No v2.** v2 has no separate fees — they are reinvested into the LP token and cannot be claimed
   without withdrawing liquidity.
-- **v4 discovery needs an explorer.** See the chain table; without one, a chain shows v3 only.
+- **v4 discovery needs an explorer.** See the chain table; on BNB Chain v4 positions have to be
+  added by link, once per browser.
 - **v3 fees arrive as WETH.** `collect` pays out WETH rather than native ETH; unwrapping would need
   a separate `unwrapWETH9` inside the same multicall. v4 pools using native ETH pay out native ETH.
 - **Gas batching.** More than `MAX_PER_TX` (25) positions on one chain will not fit in a single
