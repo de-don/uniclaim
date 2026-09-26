@@ -6,6 +6,31 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b0b0f" />
+    <meta name="color-scheme" content="dark" />
+    <!--
+      The page's stylesheet arrives as a separate file (and, under the dev
+      server, only after the script runs), so until then the static hero below
+      would render black-on-white in the top-left corner and then jump. These
+      rules paint it in the app's own colours and place the hero where the
+      app will draw it, header gap included. Keep them in step with the tokens
+      and the .main / .landing rules in src/index.css. `.app--static` exists
+      only in this markup, so none of it applies once React has mounted.
+    -->
+    <style>
+      html, body { margin: 0; background: #0b0b0f; color: #f2f2f5; }
+      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+      .app--static .main { max-width: 1080px; margin: 0 auto; padding: 109px 24px 0; box-sizing: border-box; }
+      .app--static .landing { max-width: 680px; margin: 48px auto 0; text-align: center; }
+      .app--static .landing__title { font-size: 42px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+      .app--static .accent { color: #ff007a; }
+      .app--static .landing__lede { color: #8b8b9a; font-size: 17px; line-height: 1.6; margin: 0; }
+      @media (max-width: 720px) {
+        .app--static .main { padding: 85px 14px 0; }
+        .app--static .landing { margin-top: 24px; }
+        .app--static .landing__title { font-size: 30px; }
+        .app--static .landing__lede { font-size: 16px; }
+      }
+    </style>
 
     <title>UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction</title>
     <meta
@@ -61,7 +86,7 @@
       src/components/Landing.tsx.
     -->
     <div id="root">
-      <div class="app">
+      <div class="app app--static">
         <main class="main">
           <div class="landing">
             <h1 class="landing__title">
