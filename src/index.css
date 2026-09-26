@@ -527,6 +527,7 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .sitefoot a { color: var(--muted); text-decoration: none; }
 .sitefoot a:hover { color: var(--text); }
 .sitefoot code { font-size: 12px; }
+.sitefoot__claims { flex-basis: 100%; text-align: center; opacity: 0.8; }
 
 .footnote {
   color: var(--muted);

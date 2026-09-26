@@ -275,7 +275,7 @@ export default function App() {
         <a href={SECURITY_URL} target="_blank" rel="noreferrer">
           Report a vulnerability
         </a>
-        <span>No contracts of its own · no approvals · no backend</span>
+        <span className="sitefoot__claims">No contracts of its own · no approvals · no backend</span>
       </footer>
 
       {selectedPositions.length > 0 && (
