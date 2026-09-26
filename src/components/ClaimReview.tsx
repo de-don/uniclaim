@@ -140,6 +140,28 @@ export function ClaimReview({ owner, selection, onConfirm, onClose }: Props) {
     }
   }, [owner, selection])
 
+  return (
+    <ClaimReviewPanel
+      owner={owner}
+      selection={selection}
+      reviews={reviews}
+      onConfirm={onConfirm}
+      onClose={onClose}
+    />
+  )
+}
+
+/**
+ * The panel itself, fed finished reviews. Split from the loader so the
+ * `#preview` harness can show it with fixed data, no chain involved.
+ */
+export function ClaimReviewPanel({
+  owner,
+  selection,
+  reviews,
+  onConfirm,
+  onClose,
+}: Props & { reviews: Map<number, ChainReview> }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()

@@ -15,8 +15,8 @@ const STEPS = [
     text: `Your v3 and v4 positions are read straight from the contracts on ${CHAINS.length} chains, and the unclaimed fees are computed from live pool state.`,
   },
   {
-    title: 'Claim in one transaction',
-    text: 'Every position you select on a chain is packed into a single batched call — one signature, one gas fee.',
+    title: 'Check it, then claim in one transaction',
+    text: 'Before your wallet opens you see the contract, the payout and the fee, simulated against the chain. Then every position on a chain goes out as one batched call.',
   },
 ]
 

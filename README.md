@@ -10,9 +10,15 @@ the contracts over public RPC endpoints; the one exception is v4 position discov
 below. The hosted deployment adds Vercel's page-level analytics — see
 [Hosting on Vercel](#hosting-on-vercel).
 
+You can look at any address before connecting anything, and no claim reaches your wallet before a
+review that says, in words, what the transaction calls, where it pays out and what it costs —
+after running it against the chain.
+
 ![Landing page](docs/landing.jpg)
 
 ![Positions grouped by chain](docs/positions.jpg)
+
+![Review before signing](docs/review.jpg)
 
 ## Contents
 
@@ -78,8 +84,23 @@ to a placeholder id, so the landing page says as much rather than letting mobile
 silently. A free id comes from [Reown](https://cloud.reown.com).
 
 Open `#preview` in development for a layout harness with mock positions, no wallet needed.
+`#preview-review` opens the review panel and `#preview-receipts` shows one claim receipt of each
+outcome, both on fixed data — these are also where the screenshots above come from, so no real
+wallet appears in them.
 
 ## Reading the list
+
+The landing page takes a `0x…` address or an ENS name and runs the same scan without a wallet
+connected. The address goes into the URL fragment (`#address=…`), which browsers never send to a
+server, so a lookup is also a link that can be shared. Viewing an address other than the connected
+one is read-only: only the owner can collect a position's fees, so claiming is switched off and a
+banner says why.
+
+While the scan runs, every chain reports as it answers — found, none, or failed — rather than one
+spinner for all of them. Chains are listed richest first and positions by USD value, so what you
+came for is at the top. Once loaded, the numbers are re-read quietly every minute while the tab is
+in front: nothing on screen is cleared first, a chain that fails to answer keeps what it showed,
+and the refresh pauses while a claim is in flight.
 
 Positions with no accrued fees are listed too, greyed out, behind a **Hide positions with no fees**
 toggle that is on by default. They are never included in a claim: collecting a zero costs gas and
@@ -163,6 +184,30 @@ Neither path takes a recipient this app could redirect: v3 `collect` pays the po
 v4's `CLOSE_CURRENCY` credits the transaction sender. (`TAKE_ALL`, the obvious v4 candidate, is a
 router action the position manager rejects with `UnsupportedAction`.)
 
+A mined transaction is only counted as a claim if its receipt says it succeeded — a reverted one
+leaves its positions on the list. How each chain's claim ended (amounts received, transaction
+links, cancelled in the wallet, failed) is kept as a receipt above the list until dismissed, since
+claiming everything on a chain removes that chain's card along with anything shown inside it.
+
+### 4. Reviewing before signing
+
+No Claim button opens the wallet directly. The calls are built once, in `src/lib/claimTx.ts`, and the
+same objects are first run as `eth_call`s from the owner's address and then, if confirmed, sent —
+so what was checked and what is signed cannot drift apart. The review shows, per chain:
+
+- the contract each transaction calls, linked to the explorer, and the method
+  (`multicall → collect × N`, `modifyLiquidities → N positions`);
+- that the payout goes to the connected address;
+- what will be received. On v3 these are the amounts `collect` returned inside the simulated
+  `multicall`, straight from the contract. v4's `modifyLiquidities` returns nothing, so there the
+  simulation proves the claim goes through and the amounts stay the pool-state figures;
+- the network fee, `estimateContractGas × getGasPrice`, in the gas token and in USD — and a
+  warning when it is larger than the fees being collected.
+
+A revert blocks the claim and shows the reason; a node that cannot be asked only produces a warning,
+since the wallet will still show its own preview. A claim across several chains then runs one
+wallet prompt per chain, with the progress shown in the action bar.
+
 ## Verifying the maths
 
 ```bash
@@ -199,6 +244,10 @@ so the script tests the maths rather than a third-party service.
   needs one transaction per protocol.
 - **Public RPCs.** A wallet with more than 400 positions on one chain is scanned partially — set
   your own endpoint via `VITE_RPC_<chainId>`.
+- **Fee estimates are estimates.** The review prices gas as `gas × gasPrice`. On OP-stack chains
+  (Optimism, Base, Blast) the L1 data fee comes on top; since EIP-4844 it is small, but it is not
+  in the figure, which is why the review shows it with `≈`.
+- **v4 amounts are computed, not returned.** See [Reviewing before signing](#4-reviewing-before-signing).
 
 ## Layout
 
@@ -210,10 +259,13 @@ src/
   lib/multicall.ts chunked batching that surfaces RPC failures instead of hiding them
   lib/scan.ts      v3 position scanner
   lib/v4/          v4 discovery, scanner and claim encoding
-  lib/prices.ts    DefiLlama prices (no key) for USD estimates
-  lib/links.ts     Uniswap and explorer links
-  hooks/           all-chain scanning, claiming
-  components/      landing, chain group, position row, summary, info panel
+  lib/claimTx.ts   the exact calls a claim sends, shared by the review and the wallet prompt
+  lib/review.ts    simulation, payout decoding and fee estimate behind the review panel
+  lib/prices.ts    DefiLlama prices (no key) for USD estimates, gas tokens included
+  lib/links.ts     Uniswap and explorer links, value ordering
+  hooks/           all-chain scanning and background refresh, claiming, address lookup
+  components/      landing, chain group, position row, summary, info panel, claim review,
+                   claim receipt, rolling numbers, dev preview harness
 scripts/
   verify-fees.ts   v3 ground-truth check against the chain
   verify-v4.ts     v4 decoding, fee and claim-encoding checks
@@ -232,8 +284,9 @@ looks like a missed upgrade until you know why:
 
 ### Bundle size
 
-`dist` is around 5.6 MB, which looks alarming and mostly is not: the first load
-pulls **10 chunks, 939 KB raw / 292 KB gzip**, plus 37 KB of CSS. Everything else
+`dist` is around 5.3 MB, which looks alarming and mostly is not: the first load
+pulls **10 chunks, 965 KB raw / 298 KB gzip**, plus 43 KB of CSS (measured
+2026-09-26). Everything else
 is code-split behind the wallet modal and downloads only for whoever picks that
 particular wallet:
 
@@ -251,7 +304,7 @@ Reown AppKit's chain plumbing, in lazy chunks, weighing almost nothing.
 
 An EVM-only build without WalletConnect was measured as a comparison: 5.6 MB →
 4.0 MB on disk, every Solana reference gone — and a first load of 289 KB gzip
-instead of 292 KB. The saving is entirely in code nobody downloads unless they
+instead of 292 KB at the time. The saving is entirely in code nobody downloads unless they
 ask for that wallet, so the wallet coverage was kept.
 
 ### Security advisories
@@ -299,6 +352,16 @@ nothing needs filling in by hand:
   a conservative `Referrer-Policy`, a `Permissions-Policy` denying camera,
   microphone, geolocation and payment, and a one-year immutable cache for
   content-hashed assets.
+- **Content-Security-Policy** allows scripts from the site's own origin only
+  (no inline script, no `eval` — the bundle uses neither), no plugins, no
+  framing and no form posts. `connect-src` and `frame-src` stay open to
+  `https:`/`wss:`: RPC endpoints are overridable per build and the wallet SDKs
+  reach many hosts, so a host list would break someone's wallet sooner or later.
+  Inline styles are allowed; `index.html` uses one to paint the pre-rendered hero
+  dark before the stylesheet arrives.
+
+The footer links the exact commit the page was built from (`VERCEL_GIT_COMMIT_SHA`,
+or `GITHUB_SHA` on Pages), so "this site runs the public source" is checkable.
 
 The canonical host is `https://uniclaim.org`, hardcoded in `index.html`
 (canonical link, Open Graph, JSON-LD), `public/robots.txt` and
@@ -328,7 +391,9 @@ Analytics and Speed Insights; until then the scripts are inert.
 What they collect is page visits and load timings. They are cookieless and set
 no cross-site identifier. They are deliberately wired at page level only — this
 app sends no custom events anywhere, so **a wallet address is never part of what
-Vercel receives**. Running locally or self-hosting sends them nothing at all.
+Vercel receives**. That includes a looked-up address: it lives in the URL
+fragment, and both scripts get the URL cut down to origin and path through
+`beforeSend`. Running locally or self-hosting sends them nothing at all.
 
 This is a real change to what the app claims, so the wording in the UI changed
 with it. The landing page used to promise "no tracking" and the FAQ "no
@@ -377,7 +442,9 @@ second one.
 
 One thing no submission substitutes for: **domain age**, which is only time.
 The other half — verifiable source — is covered: the repository is public, and
-the app links to it from the header, the landing page and the Security panel.
+the app links to it from the header, the landing page and the Security panel, and the footer links
+the exact commit a page was built from. The Security panel also lists every position manager a claim
+can call, per chain, rendered from the same config the claim code reads.
 
 ## Deployment
 

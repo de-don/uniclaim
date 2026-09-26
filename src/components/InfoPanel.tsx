@@ -66,6 +66,17 @@ fees = tokensOwed
         transaction cannot exceed the block gas limit, and a selection that spans both protocol
         versions needs one transaction each.
       </p>
+
+      <h3>4 · Checking before you sign</h3>
+      <p>
+        No Claim button opens your wallet directly. First comes a review: which contract each
+        transaction calls, that the payout goes to your address, what you will receive and what the
+        network fee comes to. The exact transaction is run against the chain as a read-only call
+        from your address before you see it. On v3 the amounts shown are the ones the contract
+        returned from that run; on v4, which returns nothing, the run proves the claim goes through
+        and the amounts are the pool-state figures above. If the chain would reject the claim, the
+        review says why and will not let you send it.
+      </p>
     </div>
   )
 }
@@ -124,8 +135,9 @@ function Security() {
       <p>
         Most drains happen through an <code>approve</code> signature that lets a contract spend your
         tokens later. UniClaim never asks for one. It never asks you to sign a message, either. The
-        only thing you sign is the claim transaction itself, and your wallet shows you exactly what
-        it does before you confirm.
+        only thing you sign is the claim transaction itself. Before the wallet opens, the app shows
+        that transaction in words — contract, recipient, amounts — after running it against the
+        chain, and your wallet shows its own view of it again before you confirm.
       </p>
 
       <h3>Connecting is read-only</h3>
