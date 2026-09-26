@@ -40,7 +40,9 @@ export const V4_CHAINS: V4Config[] = [
     positionManager: '0x3C3Ea4B57a46241e54610e5f022E5c45859A1017',
     poolManager: '0x9a13F98Cb987694C9F086b1F5eB990EeA8264Ec3',
     stateView: '0xc18a3169788F4F75A170290584ECA6395C75Ecdb',
-    explorer: 'https://optimism.blockscout.com',
+    // optimism.blockscout.com now 301s here, and a browser drops a cross-origin
+    // redirect that carries no CORS header — the lookup failed on every load.
+    explorer: 'https://explorer.optimism.io',
   },
   {
     chainId: polygon.id,
