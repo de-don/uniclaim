@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { encodeFunctionData, maxUint128 } from 'viem'
+import { BaseError, encodeFunctionData, maxUint128, UserRejectedRequestError } from 'viem'
 import { useAccount, useConfig, useWriteContract } from 'wagmi'
 import { switchChain, waitForTransactionReceipt } from 'wagmi/actions'
 import { positionManagerAbi } from '../abi/positionManager'
@@ -22,7 +22,7 @@ const DEADLINE_WINDOW = 600n
 
 export type ClaimState = {
   chainId: number | null
-  status: 'idle' | 'switching' | 'signing' | 'pending' | 'success' | 'error'
+  status: 'idle' | 'switching' | 'signing' | 'pending' | 'success' | 'cancelled' | 'error'
   hash?: `0x${string}`
   error?: string
   /** 1-based progress when a claim spans several transactions. */
@@ -122,8 +122,11 @@ export function useClaim() {
 
         return claimed
       } catch (error) {
-        const raw = error instanceof Error ? error.message : String(error)
-        setState({ chainId, status: 'error', error: raw.split('\n')[0] })
+        setState(
+          isRejection(error)
+            ? { chainId, status: 'cancelled' }
+            : { chainId, status: 'error', error: describeError(error) },
+        )
         // Batches already mined are genuinely claimed; report them so the UI can
         // drop exactly those rows rather than leaving stale fees on screen.
         return claimed
@@ -133,4 +136,22 @@ export function useClaim() {
   )
 
   return { claim, state, reset }
+}
+
+/**
+ * Declining in the wallet is a decision, not a failure, and showing it in red
+ * next to the word "Failed" reads as if something went wrong with the funds.
+ */
+function isRejection(error: unknown): boolean {
+  if (error instanceof BaseError) {
+    return Boolean(error.walk((e) => e instanceof UserRejectedRequestError))
+  }
+  return (error as { code?: unknown } | null)?.code === 4001
+}
+
+/** viem's short message is the human part; the full one carries calldata and docs links. */
+function describeError(error: unknown): string {
+  if (error instanceof BaseError) return error.shortMessage
+  const raw = error instanceof Error ? error.message : String(error)
+  return raw.split('\n')[0]
 }

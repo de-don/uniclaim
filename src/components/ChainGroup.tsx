@@ -98,6 +98,7 @@ export function ChainGroup({
           {claimState.status === 'signing' && `Confirm transaction${progress} in your wallet…`}
           {claimState.status === 'pending' && `Transaction${progress} sent, waiting for it to land…`}
           {claimState.status === 'success' && 'Fees claimed.'}
+          {claimState.status === 'cancelled' && 'Cancelled in your wallet — nothing was sent.'}
           {claimState.status === 'error' && `Failed: ${claimState.error}`}
           {claimState.hash && explorer && (
             <a href={`${explorer}/tx/${claimState.hash}`} target="_blank" rel="noreferrer">
