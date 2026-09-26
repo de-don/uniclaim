@@ -3,6 +3,7 @@ import { CHAINS } from '../config/chains'
 import { hasFees } from '../lib/links'
 import type { Position } from '../lib/types'
 import { ChainGroup } from './ChainGroup'
+import { ClaimReceipt } from './ClaimReceipt'
 import { Summary } from './Summary'
 
 /**
@@ -105,6 +106,31 @@ export function Preview() {
 
   return (
     <div className="main">
+      {/* Every outcome a claim can end in, since reaching them for real takes a wallet. */}
+      <ClaimReceipt
+        result={{
+          chainId: 1,
+          outcome: 'success',
+          claimed: MOCK[1],
+          hashes: ['0x6c3f2b9a1d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8'],
+        }}
+        onDismiss={() => undefined}
+      />
+      <ClaimReceipt
+        result={{ chainId: 8453, outcome: 'cancelled', claimed: [], hashes: [] }}
+        onDismiss={() => undefined}
+      />
+      <ClaimReceipt
+        result={{
+          chainId: 42161,
+          outcome: 'error',
+          claimed: [],
+          hashes: [],
+          error: 'The transaction reverted on chain',
+        }}
+        onDismiss={() => undefined}
+      />
+
       <Summary positions={all} chainCount={Object.keys(MOCK).length} />
 
       <div className="filters">

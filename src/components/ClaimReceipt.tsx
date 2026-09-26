@@ -48,7 +48,7 @@ export function ClaimReceipt({ result, onDismiss }: Props) {
               {result.hashes.length > 1 ? `Transaction ${i + 1}` : 'View transaction'} ↗
             </a>
           ))}
-        <button className="link" onClick={onDismiss} aria-label="Dismiss">
+        <button className="banner__close" onClick={onDismiss} aria-label="Dismiss">
           ✕
         </button>
       </span>

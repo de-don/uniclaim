@@ -739,6 +739,20 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 .banner--receipt.banner--success { border-color: rgba(39, 174, 96, 0.35); }
 .banner--receipt.banner--cancelled { color: var(--muted); }
 .banner--receipt.banner--error { margin-bottom: 12px; }
+.banner__actions { align-items: center; }
+.banner__close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 8px;
+  margin: -6px -8px -6px 0;
+  border-radius: 8px;
+}
+.banner__close:hover { color: var(--text); background: var(--surface); }
 
 /* ---------- multi-chain claim progress ---------- */
 .actionbar__steps { display: flex; gap: 6px; }
