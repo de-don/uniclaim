@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import App from './App'
-import { Preview } from './components/Preview'
+import { Preview, type PreviewVariant } from './components/Preview'
 
 /**
  * Chooses between the app and the development layout harness.
@@ -18,5 +18,9 @@ export function Root() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  return import.meta.env.DEV && hash === '#preview' ? <Preview /> : <App />
+  if (import.meta.env.DEV && hash.startsWith('#preview')) {
+    const variant = hash.slice('#preview-'.length) as PreviewVariant
+    return <Preview variant={['receipts', 'review'].includes(variant) ? variant : 'list'} />
+  }
+  return <App />
 }

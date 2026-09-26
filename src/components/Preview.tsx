@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { CHAINS } from '../config/chains'
-import { hasFees } from '../lib/links'
+import { CHAIN_BY_ID, CHAINS } from '../config/chains'
+import { V4_BY_CHAIN } from '../config/v4'
+import { byValue, hasFees, pricedUsd } from '../lib/links'
+import { sumByToken, type ChainReview } from '../lib/review'
 import type { Position } from '../lib/types'
 import { ChainGroup } from './ChainGroup'
 import { ClaimReceipt } from './ClaimReceipt'
+import { ClaimReviewPanel } from './ClaimReview'
 import { Summary } from './Summary'
 
 /**
@@ -97,39 +100,105 @@ const MOCK: Record<number, Position[]> = {
   ],
 }
 
-export function Preview() {
+/** An address that is plainly a placeholder, so a screenshot never shows a real wallet. */
+const OWNER = '0xa1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4' as const
+
+function mockReview(chainId: number, positions: Position[], gasWei: bigint, gasUsd: number): ChainReview {
+  const v3 = positions.filter((p) => p.version === 'v3')
+  const v4 = positions.filter((p) => p.version === 'v4')
+  const txs = [
+    ...(v3.length
+      ? [{
+          version: 'v3' as const,
+          contract: CHAIN_BY_ID.get(chainId)!.positionManager,
+          method: `multicall → collect × ${v3.length}`,
+          positions: v3.length,
+        }]
+      : []),
+    ...(v4.length
+      ? [{
+          version: 'v4' as const,
+          contract: V4_BY_CHAIN.get(chainId)!.positionManager,
+          method: `modifyLiquidities → ${v4.length} position${v4.length === 1 ? '' : 's'}`,
+          positions: v4.length,
+        }]
+      : []),
+  ]
+  return {
+    chainId,
+    positions,
+    txs,
+    receive: sumByToken(positions),
+    simulation: 'ok',
+    amountsFromChain: v4.length === 0,
+    receiveUsd: pricedUsd(positions),
+    unpriced: positions.filter((p) => p.usd === null).length,
+    gas: { native: gasWei, symbol: 'ETH', decimals: 18, usd: gasUsd },
+  }
+}
+
+export type PreviewVariant = 'list' | 'receipts' | 'review'
+
+/**
+ * `#preview` shows the list, `#preview-receipts` adds one receipt of each
+ * outcome, `#preview-review` opens the review panel on fixed data. Separate
+ * addresses rather than toggles, so a screenshot carries no harness controls.
+ */
+export function Preview({ variant = 'list' }: { variant?: PreviewVariant }) {
   const [selected, setSelected] = useState<Set<string>>(new Set(['v3-1-498211']))
   const [hideEmpty, setHideEmpty] = useState(false)
 
   const all = Object.values(MOCK).flat()
   const emptyCount = all.length - all.filter(hasFees).length
 
+  const reviewSelection = [
+    { chainId: 1, positions: MOCK[1] },
+    { chainId: 42161, positions: MOCK[42161].filter(hasFees) },
+  ]
+  const reviews = new Map([
+    [1, mockReview(1, reviewSelection[0].positions, 2_140_000_000_000_000n, 5.61)],
+    [42161, mockReview(42161, reviewSelection[1].positions, 41_000_000_000_000n, 0.11)],
+  ])
+
   return (
     <div className="main">
-      {/* Every outcome a claim can end in, since reaching them for real takes a wallet. */}
-      <ClaimReceipt
-        result={{
-          chainId: 1,
-          outcome: 'success',
-          claimed: MOCK[1],
-          hashes: ['0x6c3f2b9a1d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8'],
-        }}
-        onDismiss={() => undefined}
-      />
-      <ClaimReceipt
-        result={{ chainId: 8453, outcome: 'cancelled', claimed: [], hashes: [] }}
-        onDismiss={() => undefined}
-      />
-      <ClaimReceipt
-        result={{
-          chainId: 42161,
-          outcome: 'error',
-          claimed: [],
-          hashes: [],
-          error: 'The transaction reverted on chain',
-        }}
-        onDismiss={() => undefined}
-      />
+      {variant === 'review' && (
+        <ClaimReviewPanel
+          owner={OWNER}
+          selection={reviewSelection}
+          reviews={reviews}
+          onConfirm={() => undefined}
+          onClose={() => undefined}
+        />
+      )}
+
+      {variant === 'receipts' && (
+        <>
+          <ClaimReceipt
+            result={{
+              chainId: 1,
+              outcome: 'success',
+              claimed: MOCK[1],
+              hashes: ['0x6c3f2b9a1d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8'],
+            }}
+            onDismiss={() => undefined}
+          />
+          <ClaimReceipt
+            result={{ chainId: 8453, outcome: 'cancelled', claimed: [], hashes: [] }}
+            onDismiss={() => undefined}
+          />
+          <ClaimReceipt
+            result={{
+              chainId: 42161,
+              outcome: 'error',
+              claimed: [],
+              hashes: [],
+              error: 'The transaction reverted on chain',
+            }}
+            onDismiss={() => undefined}
+          />
+        </>
+      )}
 
       <Summary positions={all} chainCount={Object.keys(MOCK).length} />
 
@@ -145,7 +214,9 @@ export function Preview() {
         <ChainGroup
           key={config.chain.id}
           config={config}
-          positions={hideEmpty ? MOCK[config.chain.id].filter(hasFees) : MOCK[config.chain.id]}
+          positions={[...MOCK[config.chain.id]]
+            .sort(byValue)
+            .filter((p) => !hideEmpty || hasFees(p))}
           selected={selected}
           onToggle={(key) =>
             setSelected((prev) => {
