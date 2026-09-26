@@ -1,6 +1,8 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useState, type FormEvent } from 'react'
 import { CHAINS } from '../config/chains'
 import { REPO_URL } from '../config/links'
+import type { WatchStatus } from '../hooks/useWatchedAddress'
 import { hasWalletConnect } from '../wagmi'
 
 const STEPS = [
@@ -20,9 +22,21 @@ const STEPS = [
 
 type Props = {
   onOpenInfo: (tab: 'how' | 'security' | 'faq') => void
+  onLookup: (query: string) => void
+  lookupStatus: WatchStatus
+  lookupError?: string
+  lookupQuery: string
 }
 
-export function Landing({ onOpenInfo }: Props) {
+export function Landing({ onOpenInfo, onLookup, lookupStatus, lookupError, lookupQuery }: Props) {
+  const [draft, setDraft] = useState(lookupQuery)
+  const resolving = lookupStatus === 'resolving'
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    onLookup(draft)
+  }
+
   // The headline and lede below are mirrored as static markup in index.html so
   // crawlers and slow connections see them before the bundle loads. Change them
   // in both places.
@@ -52,6 +66,34 @@ export function Landing({ onOpenInfo }: Props) {
       <div className="landing__cta">
         <ConnectButton />
       </div>
+
+      {/* Seeing what the app finds before connecting anything is the honest
+          answer to "why should I connect my wallet to a site I do not know". */}
+      <form className="lookup" onSubmit={submit}>
+        <label className="lookup__label" htmlFor="lookup">
+          Or look up any address first — no wallet needed
+        </label>
+        <div className="lookup__row">
+          <input
+            id="lookup"
+            className="lookup__input"
+            placeholder="0x… or name.eth"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
+            autoCapitalize="off"
+          />
+          <button className="btn" type="submit" disabled={!draft.trim() || resolving}>
+            {resolving ? 'Resolving…' : 'View'}
+          </button>
+        </div>
+        {lookupStatus === 'error' && lookupError && (
+          <p className="lookup__error" role="alert">
+            {lookupError}
+          </p>
+        )}
+      </form>
 
       {!hasWalletConnect && (
         <p className="landing__warn">

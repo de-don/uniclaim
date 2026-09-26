@@ -221,6 +221,18 @@ function Faq() {
       ),
     },
     {
+      q: 'Can I see what it finds before connecting a wallet?',
+      a: (
+        <p>
+          Yes — paste any address or ENS name on the front page. You get the same scan, read-only,
+          and a link you can share. The address goes after the <code>#</code> in that link, a part
+          of a URL that browsers never send to a server, and it is cut off before the page-level
+          analytics sees the URL. To claim, connect the wallet that owns the positions: only the
+          owner can collect its fees.
+        </p>
+      ),
+    },
+    {
       q: 'Why does my wallet ask to switch networks?',
       a: (
         <p>

@@ -85,6 +85,23 @@ body {
 .landing__cta { display: flex; justify-content: center; margin-bottom: 32px; }
 .landing__note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0; }
 
+.lookup { max-width: 460px; margin: 0 auto 32px; display: grid; gap: 8px; }
+.lookup__label { color: var(--muted); font-size: 14px; }
+.lookup__row { display: flex; gap: 8px; }
+.lookup__input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+.lookup__input:focus { outline: none; border-color: var(--accent); }
+.lookup__error { color: var(--red); font-size: 13px; margin: 0; }
+
 /* ---------- summary ---------- */
 .summary {
   display: grid;
@@ -232,6 +249,15 @@ input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent);
 }
 .banner a { color: var(--accent); }
 .banner--success { color: var(--green); }
+.banner--watch {
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  color: var(--muted);
+}
+.banner--watch strong { color: var(--text); }
+.banner__actions { display: flex; gap: 16px; }
 .banner--error {
   color: var(--red);
   border: 1px solid rgba(224, 72, 75, 0.35);
