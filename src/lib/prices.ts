@@ -48,6 +48,31 @@ export async function fetchPrices(positions: Position[]): Promise<Map<string, nu
   return prices
 }
 
+/** DefiLlama's CoinGecko-keyed ids for the gas tokens of the supported chains. */
+const NATIVE_PRICE_IDS: Record<string, string> = {
+  ETH: 'ethereum',
+  POL: 'polygon-ecosystem-token',
+  MATIC: 'matic-network',
+  BNB: 'binancecoin',
+  AVAX: 'avalanche-2',
+  CELO: 'celo',
+}
+
+/** USD price of a chain's gas token, by symbol; null when there is no quote. */
+export async function fetchNativePrice(symbol: string): Promise<number | null> {
+  const id = NATIVE_PRICE_IDS[symbol.toUpperCase()]
+  if (!id) return null
+  try {
+    const response = await fetch(`${LLAMA_URL}/coingecko:${id}`)
+    if (!response.ok) return null
+    const data = (await response.json()) as LlamaResponse
+    const price = data.coins?.[`coingecko:${id}`]?.price
+    return typeof price === 'number' ? price : null
+  } catch {
+    return null
+  }
+}
+
 export function priceKey(chainId: number, token: `0x${string}`): string {
   const llamaKey = CHAIN_BY_ID.get(chainId)?.llamaKey
   return llamaKey ? `${llamaKey}:${token}`.toLowerCase() : ''
