@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { CHAIN_BY_ID } from '../config/chains'
+import { CHAIN_BY_ID, CHAINS } from '../config/chains'
 import { ISSUES_URL, REPO_URL, SECURITY_URL } from '../config/links'
-import { V4_CHAINS } from '../config/v4'
+import { V4_BY_CHAIN, V4_CHAINS } from '../config/v4'
+import { shortAddress } from '../lib/format'
 
 const V4_CHAIN_NAMES = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name ?? String(v.chainId))
 
@@ -69,6 +70,45 @@ fees = tokensOwed
   )
 }
 
+function ContractLink({ explorer, address }: { explorer?: string; address: `0x${string}` }) {
+  if (!explorer) return <code title={address}>{shortAddress(address)}</code>
+  return (
+    <a href={`${explorer}/address/${address}`} target="_blank" rel="noreferrer" title={address}>
+      <code>{shortAddress(address)}</code>
+    </a>
+  )
+}
+
+/** Rendered from the same config the claim code reads, so the list cannot drift from it. */
+function ContractList() {
+  return (
+    <table className="contracts">
+      <thead>
+        <tr>
+          <th>Chain</th>
+          <th>v3 position manager</th>
+          <th>v4 position manager</th>
+        </tr>
+      </thead>
+      <tbody>
+        {CHAINS.map((config) => {
+          const explorer = config.chain.blockExplorers?.default.url
+          const v4 = V4_BY_CHAIN.get(config.chain.id)
+          return (
+            <tr key={config.chain.id}>
+              <td>{config.chain.name}</td>
+              <td>
+                <ContractLink explorer={explorer} address={config.positionManager} />
+              </td>
+              <td>{v4 ? <ContractLink explorer={explorer} address={v4.positionManager} /> : '—'}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
 function Security() {
   return (
     <div className="prose">
@@ -101,6 +141,12 @@ function Security() {
         on startup: the v3 factory address is read out of the position manager rather than hardcoded,
         so a typo cannot silently redirect the maths at some other pool.
       </p>
+      <p>
+        These are the only contracts a claim ever calls — Uniswap's own position managers. Compare
+        them with the address your wallet shows before you confirm; each one opens in the chain's
+        explorer, which labels it as Uniswap's.
+      </p>
+      <ContractList />
       <p>
         None of this is worth much on its own, so{' '}
         <a href={REPO_URL} target="_blank" rel="noreferrer">

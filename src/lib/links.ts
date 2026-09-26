@@ -33,3 +33,18 @@ export function positionUrlLabel(position: Position): string {
 export function hasFees(position: Position): boolean {
   return position.fees0 > 0n || position.fees1 > 0n
 }
+
+/**
+ * Most valuable first: what a visitor came for should not sit below a page of
+ * dust. Unpriced positions with fees rank under every priced one but above the
+ * empty ones, and ties fall back to the newest position.
+ */
+export function byValue(a: Position, b: Position): number {
+  const rank = (p: Position) => (!hasFees(p) ? -2 : p.usd === null ? -1 : p.usd)
+  return rank(b) - rank(a) || (a.tokenId < b.tokenId ? 1 : a.tokenId > b.tokenId ? -1 : 0)
+}
+
+/** The priced part of the fees; unpriced positions add nothing rather than blank the sum. */
+export function pricedUsd(positions: Position[]): number {
+  return positions.reduce((sum, p) => sum + (hasFees(p) && p.usd !== null ? p.usd : 0), 0)
+}
