@@ -4,7 +4,9 @@ import { ISSUES_URL, REPO_URL, SECURITY_URL } from '../config/links'
 import { V4_BY_CHAIN, V4_CHAINS } from '../config/v4'
 import { shortAddress } from '../lib/format'
 
-const V4_CHAIN_NAMES = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name ?? String(v.chainId))
+const nameOf = (chainId: number) => CHAIN_BY_ID.get(chainId)?.chain.name ?? String(chainId)
+const V4_AUTO_NAMES = V4_CHAINS.filter((v) => v.discovery).map((v) => nameOf(v.chainId))
+const V4_LINK_NAMES = V4_CHAINS.filter((v) => !v.discovery).map((v) => nameOf(v.chainId))
 
 export type InfoTab = 'how' | 'security' | 'faq'
 
@@ -288,11 +290,22 @@ function Faq() {
     {
       q: 'Are my v4 positions supported everywhere?',
       a: (
-        <p>
-          v4 needs a position lookup the contract does not provide, so it works on the chains where
-          a public explorer offers one: {V4_CHAIN_NAMES.join(', ')}. The other chains still show
-          every v3 position, and the app says which is which.
-        </p>
+        <>
+          <p>
+            v4 needs a position lookup the contract does not provide. Where a public explorer
+            offers one without an API key, positions are found automatically:{' '}
+            {V4_AUTO_NAMES.join(', ')}.
+          </p>
+          {V4_LINK_NAMES.length > 0 && (
+            <p>
+              On {V4_LINK_NAMES.join(', ')} nothing lists them for free, so paste the position's
+              link from app.uniswap.org under the list. The app checks on chain that it is yours,
+              remembers it in this browser, and from then on treats it like any other position.
+              The same works anywhere a lookup misses one.
+            </p>
+          )}
+          <p>Every chain shows every v3 position regardless.</p>
+        </>
       ),
     },
     {

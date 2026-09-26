@@ -101,6 +101,8 @@ body {
 }
 .lookup__input:focus { outline: none; border-color: var(--accent); }
 .lookup__error { color: var(--red); font-size: 13px; margin: 0; }
+.lookup__ok { color: var(--green); font-size: 13px; margin: 0; }
+.lookup--add { margin-top: 16px; max-width: 560px; text-align: center; }
 
 /* ---------- summary ---------- */
 .summary {

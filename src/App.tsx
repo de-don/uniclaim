@@ -1,6 +1,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, useAccountEffect } from 'wagmi'
+import { AddPosition } from './components/AddPosition'
 import { ChainGroup } from './components/ChainGroup'
 import { ClaimReceipt } from './components/ClaimReceipt'
 import { ClaimReview, type ClaimSelection } from './components/ClaimReview'
@@ -124,7 +125,12 @@ export default function App() {
   const failedChains = scans.filter((s) => s.status === 'error')
   const truncated = scans.filter((s) => s.skipped > 0)
   const v4Failed = scans.filter((s) => s.v4Error)
-  const v4ChainNames = V4_CHAINS.map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name).filter(Boolean)
+  const v4ChainNames = V4_CHAINS.filter((v) => v.discovery)
+    .map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name)
+    .filter(Boolean)
+  const v4LinkOnlyNames = V4_CHAINS.filter((v) => !v.discovery)
+    .map((v) => CHAIN_BY_ID.get(v.chainId)?.chain.name)
+    .filter(Boolean)
 
   const toggle = useCallback((key: string) => {
     setSelected((prev) => {
@@ -399,14 +405,19 @@ export default function App() {
 
             {!isScanning && (
               <p className="footnote">
-                v4 positions are scanned on {v4ChainNames.join(', ')}. Everywhere else only v3
-                exists in a form this app can enumerate — see{' '}
+                v4 positions are found automatically on {v4ChainNames.join(', ')}.
+                {v4LinkOnlyNames.length > 0 &&
+                  ` On ${v4LinkOnlyNames.join(', ')} nothing lists them without an API key, so add yours by link below.`}{' '}
+                More in{' '}
                 <button className="link" onClick={() => setInfoTab('faq')}>
                   the FAQ
                 </button>
                 .
               </p>
             )}
+            {/* Outside the scanning condition: adding a position starts a scan,
+                and unmounting here would swallow the confirmation. */}
+            {owner && <AddPosition owner={owner} onAdded={() => void rescan()} />}
           </>
         )}
       </main>

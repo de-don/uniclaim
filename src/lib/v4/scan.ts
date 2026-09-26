@@ -181,7 +181,11 @@ export async function scanV4TokenIds(
 
     const fees0 = feesFromCheckpoint(entry.liquidity, inside0, last0)
     const fees1 = feesFromCheckpoint(entry.liquidity, inside1, last1)
-    if (fees0 === 0n && fees1 === 0n) return
+    // As on v3: a position still holding liquidity is listed even with nothing
+    // accrued yet (greyed out, never claimed); only an emptied one is dropped.
+    // Dropping every zero-fee position hid live ones — including a position
+    // pasted by link, which then seemed to vanish.
+    if (entry.liquidity === 0n && fees0 === 0n && fees1 === 0n) return
 
     positions.push({
       key: `v4-${chainConfig.chain.id}-${entry.tokenId}`,
