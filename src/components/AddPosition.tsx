@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { PublicClient } from 'viem'
 import { getPublicClient } from 'wagmi/actions'
 import { v4PositionManagerAbi } from '../abi/v4'
@@ -25,6 +25,12 @@ function parse(input: string): Parsed {
   return { chainId: chain.chain.id, tokenId: BigInt(id) }
 }
 
+type Status =
+  | { kind: 'idle' }
+  | { kind: 'checking' }
+  | { kind: 'error'; message: string }
+  | { kind: 'added' }
+
 type Props = {
   owner: `0x${string}`
   /** Called once the position is confirmed and remembered, to scan it in. */
@@ -39,9 +45,7 @@ type Props = {
 export function AddPosition({ owner, onAdded }: Props) {
   const [open, setOpen] = useState(false)
   const [link, setLink] = useState('')
-  const [status, setStatus] = useState<
-    { kind: 'idle' } | { kind: 'checking' } | { kind: 'error'; message: string } | { kind: 'added' }
-  >({ kind: 'idle' })
+  const [status, setStatus] = useState<Status>({ kind: 'idle' })
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -78,30 +82,74 @@ export function AddPosition({ owner, onAdded }: Props) {
     }
 
     addManualV4Id(parsed.chainId, owner, parsed.tokenId)
-    setLink('')
     setStatus({ kind: 'added' })
     onAdded()
   }
 
-  if (!open) {
-    return (
+  const close = () => {
+    setOpen(false)
+    setLink('')
+    setStatus({ kind: 'idle' })
+  }
+
+  return (
+    <>
       <p className="footnote">
         Missing a v4 position?{' '}
         <button className="link" onClick={() => setOpen(true)}>
           Add it by its Uniswap link
         </button>
       </p>
-    )
-  }
+      {open && <AddPositionDialog {...{ link, setLink, status, setStatus, submit, close }} />}
+    </>
+  )
+}
+
+type DialogProps = {
+  link: string
+  setLink: (value: string) => void
+  status: Status
+  setStatus: (status: Status) => void
+  submit: (event: FormEvent) => Promise<void>
+  close: () => void
+}
+
+function AddPositionDialog({ link, setLink, status, setStatus, submit, close }: DialogProps) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [close])
+
+  const added = status.kind === 'added'
 
   return (
-    <form className="lookup lookup--add" onSubmit={(e) => void submit(e)}>
-      <label className="lookup__label" htmlFor="add-position">
-        Paste the position's link from app.uniswap.org — it is checked on chain before it is added
-      </label>
-      <div className="lookup__row">
+    <div className="overlay overlay--center" onClick={close} role="presentation">
+      <form
+        className="dialog"
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={(e) => void submit(e)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-position-title"
+      >
+        <header className="dialog__head">
+          <h2 id="add-position-title" className="dialog__title">
+            Add a v4 position
+          </h2>
+          <button type="button" className="panel__close" onClick={close} aria-label="Close">
+            ✕
+          </button>
+        </header>
+
+        <p className="dialog__text">
+          Paste the position's link from app.uniswap.org. It is checked on chain that the position
+          belongs to this address before anything is added, and it is remembered in this browser.
+        </p>
+
         <input
-          id="add-position"
           className="lookup__input"
           placeholder="https://app.uniswap.org/positions/v4/bnb/…"
           value={link}
@@ -109,24 +157,46 @@ export function AddPosition({ owner, onAdded }: Props) {
             setLink(e.target.value)
             if (status.kind !== 'checking') setStatus({ kind: 'idle' })
           }}
+          autoFocus
           spellCheck={false}
           autoComplete="off"
+          disabled={added}
+          aria-label="Position link"
         />
-        <button className="btn" type="submit" disabled={!link.trim() || status.kind === 'checking'}>
-          {status.kind === 'checking' ? 'Checking…' : 'Add'}
-        </button>
-      </div>
-      {status.kind === 'error' && (
-        <p className="lookup__error" role="alert">
-          {status.message}
-        </p>
-      )}
-      {status.kind === 'added' && (
-        <p className="lookup__ok" role="status">
-          Added — scanning it in now, and on every visit from this browser. If it has no fees yet,
-          it sits behind "Hide positions with no fees".
-        </p>
-      )}
-    </form>
+
+        {status.kind === 'error' && (
+          <p className="lookup__error" role="alert">
+            {status.message}
+          </p>
+        )}
+        {added && (
+          <p className="lookup__ok" role="status">
+            Added — it is being scanned in now. If it has no fees yet, it sits behind "Hide
+            positions with no fees".
+          </p>
+        )}
+
+        <footer className="dialog__foot">
+          {added ? (
+            <button type="button" className="btn btn--primary" onClick={close}>
+              Done
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn" onClick={close}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={!link.trim() || status.kind === 'checking'}
+              >
+                {status.kind === 'checking' ? 'Checking…' : 'Add position'}
+              </button>
+            </>
+          )}
+        </footer>
+      </form>
+    </div>
   )
 }
