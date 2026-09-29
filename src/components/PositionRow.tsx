@@ -1,6 +1,7 @@
 import { formatAmount, formatFeeTier, formatUsd } from '../lib/format'
 import { hasFees, positionUrl, positionUrlLabel } from '../lib/links'
 import type { Position } from '../lib/types'
+import { RollingNumber } from './RollingNumber'
 
 type Props = {
   position: Position
@@ -70,12 +71,14 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy, readO
           <>
             {position.fees0 > 0n && (
               <span>
-                {formatAmount(position.fees0, position.token0.decimals)} {position.token0.symbol}
+                <RollingNumber value={formatAmount(position.fees0, position.token0.decimals)} />{' '}
+                {position.token0.symbol}
               </span>
             )}
             {position.fees1 > 0n && (
               <span>
-                {formatAmount(position.fees1, position.token1.decimals)} {position.token1.symbol}
+                <RollingNumber value={formatAmount(position.fees1, position.token1.decimals)} />{' '}
+                {position.token1.symbol}
               </span>
             )}
           </>
@@ -84,7 +87,9 @@ export function PositionRow({ position, selected, onToggle, onClaim, busy, readO
         )}
       </div>
 
-      <div className="row__usd">{claimable ? formatUsd(position.usd) : '—'}</div>
+      <div className="row__usd">
+        {claimable ? <RollingNumber value={formatUsd(position.usd)} /> : '—'}
+      </div>
 
       <button
         className="btn btn--ghost row__claim"
