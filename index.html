@@ -32,29 +32,29 @@
       }
     </style>
 
-    <title>UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction</title>
+    <title>Claim Uniswap Fees from Multiple Positions at Once | UniClaim</title>
     <meta
       name="description"
-      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain. Runs in your browser, no token approvals."
+      content="Collect Uniswap v3 &amp; v4 LP fees from multiple positions at once — one transaction per chain, 10 chains. Free, no approvals, simulated before you sign."
     />
     <link rel="canonical" href="https://uniclaim.org/" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="UniClaim" />
-    <meta property="og:title" content="UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction" />
+    <meta property="og:title" content="Claim Uniswap Fees from Multiple Positions at Once | UniClaim" />
     <meta
       property="og:description"
-      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain. Runs in your browser, no token approvals."
+      content="Collect Uniswap v3 &amp; v4 LP fees from multiple positions at once — one transaction per chain, 10 chains. Free, no approvals, simulated before you sign."
     />
     <meta property="og:url" content="https://uniclaim.org/" />
     <meta property="og:image" content="https://uniclaim.org/og.jpg" />
     <meta property="og:image:alt" content="UniClaim listing Uniswap positions grouped by chain with their unclaimed fees" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="UniClaim — Claim Uniswap v3 &amp; v4 Fees in One Transaction" />
+    <meta name="twitter:title" content="Claim Uniswap Fees from Multiple Positions at Once | UniClaim" />
     <meta
       name="twitter:description"
-      content="Claim unclaimed Uniswap v3 and v4 LP fees from all your positions across 10 chains — one transaction per chain."
+      content="Collect Uniswap v3 &amp; v4 LP fees from multiple positions at once — one transaction per chain."
     />
     <meta name="twitter:image" content="https://uniclaim.org/og.jpg" />
 
@@ -77,27 +77,19 @@
         ]
       }
     </script>
+    <!--faq-jsonld-->
   </head>
   <body>
     <!--
-      React replaces this on mount. It exists so a crawler that does not run
-      JavaScript, and a visitor on a slow connection, get the headline before
-      ~300 KB of bundle arrives. Keep it in step with the hero in
-      src/components/Landing.tsx.
+      React replaces this on mount. The build fills the marker with the landing
+      copy (hero, steps, questions) from src/content/landing.ts, so a crawler
+      that does not run JavaScript, and a visitor on a slow connection, read the
+      same page the app renders.
     -->
     <div id="root">
       <div class="app app--static">
         <main class="main">
-          <div class="landing">
-            <h1 class="landing__title">
-              Claim fees from <span class="accent">every position</span> in one transaction
-            </h1>
-            <p class="landing__lede">
-              UniClaim finds all of your Uniswap v3 and v4 positions, shows the fees you have earned
-              but never collected, and claims them in a batch — one transaction per chain instead of
-              one per position.
-            </p>
-          </div>
+          <!--static-landing-->
         </main>
       </div>
     </div>

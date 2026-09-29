@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <meta name="color-scheme" content="dark" />
+
+    <title>How to Collect Uniswap Fees from Multiple Positions at Once (v3 &amp; v4)</title>
+    <meta
+      name="description"
+      content="Twenty Uniswap positions usually means twenty collect transactions. How to claim LP fees from multiple v3 and v4 positions in one transaction per chain — and how the batching works."
+    />
+    <link rel="canonical" href="https://uniclaim.org/guides/collect-uniswap-fees-multiple-positions" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="UniClaim" />
+    <meta property="og:title" content="How to Collect Uniswap Fees from Multiple Positions at Once" />
+    <meta
+      property="og:description"
+      content="Claim LP fees from many Uniswap v3 and v4 positions in one transaction per chain, and how the batching works under the hood."
+    />
+    <meta property="og:url" content="https://uniclaim.org/guides/collect-uniswap-fees-multiple-positions" />
+    <meta property="og:image" content="https://uniclaim.org/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="How to Collect Uniswap Fees from Multiple Positions at Once" />
+    <meta name="twitter:image" content="https://uniclaim.org/og.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "headline": "How to Collect Uniswap Fees from Multiple Positions at Once (v3 & v4)",
+        "description": "Claim LP fees from many Uniswap v3 and v4 positions in one transaction per chain, and how the batching works.",
+        "url": "https://uniclaim.org/guides/collect-uniswap-fees-multiple-positions",
+        "datePublished": "2026-09-29",
+        "dateModified": "2026-09-29",
+        "image": "https://uniclaim.org/og.jpg",
+        "author": { "@type": "Organization", "name": "UniClaim", "url": "https://uniclaim.org/" },
+        "publisher": { "@type": "Organization", "name": "UniClaim", "url": "https://uniclaim.org/" }
+      }
+    </script>
+
+    <link rel="stylesheet" href="/src/guide.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><span class="brand__mark">◎</span> UniClaim</a>
+      <a class="btn" href="/">Open the app</a>
+    </header>
+
+    <main class="article">
+      <p class="kicker">Guide · Uniswap v3 &amp; v4</p>
+      <h1>How to collect Uniswap fees from multiple positions at once</h1>
+      <p class="lede">
+        If you provide liquidity on Uniswap for long enough, you end up with a lot of positions — a few
+        on Arbitrum, a few on Base, some on mainnet, some newer v4 ones. Collecting the fees they earn
+        is a chore: the Uniswap interface does it one position at a time. This guide explains why,
+        what it costs you, and how to collect from all of them with one transaction per chain.
+      </p>
+
+      <h2>Why it usually takes one transaction per position</h2>
+      <p>
+        Every Uniswap v3 and v4 liquidity position is an NFT with its own token id, and the fee it
+        earns belongs to that id. The interface collects fees from the position page you are looking
+        at, so claiming twenty positions means opening twenty pages, signing twenty transactions,
+        waiting for each to confirm — and switching networks in between if your positions are spread
+        across chains.
+      </p>
+      <p>
+        Every one of those transactions pays the fixed 21,000-gas base cost of a transaction on top of
+        the work itself, plus your time. On a cheap chain that is mostly an annoyance; on mainnet it
+        is a real share of what small positions earn.
+      </p>
+
+      <h2>The contracts already allow batching</h2>
+      <p>
+        Nothing in Uniswap forces one claim per transaction. Both versions let a single call touch
+        many positions — the interface just does not use it for claiming.
+      </p>
+      <h3>Uniswap v3</h3>
+      <p>
+        The v3 <code>NonfungiblePositionManager</code> has a <code>multicall(bytes[])</code> function.
+        You encode one <code>collect()</code> call per position — token id, recipient, and
+        <code>maxUint128</code> for both amounts — and send them all in one transaction. Each
+        <code>collect</code> pays the position's owner, so the batch can only ever pay you.
+      </p>
+      <h3>Uniswap v4</h3>
+      <p>
+        v4 has no <code>collect</code> at all. Fees are realised by <em>decreasing liquidity by
+        zero</em>, which settles everything the position has accrued into the caller's credit, and
+        then taking that credit. The v4 position manager accepts a list of actions inside one
+        <code>modifyLiquidities</code> call, so a batch is one <code>DECREASE_LIQUIDITY</code> per
+        position followed by one <code>CLOSE_CURRENCY</code> per distinct token. Closing per currency
+        rather than per pool matters: two positions sharing a token would otherwise try to withdraw
+        the same credit twice.
+      </p>
+      <p>
+        One catch: v3 and v4 are separate contracts, so a selection that includes both needs one
+        transaction for each. And very large batches are split so a single transaction cannot exceed
+        the block gas limit.
+      </p>
+
+      <h2>Finding every position first</h2>
+      <p>
+        Batching is the easy half. The harder half is knowing which positions you have. v3's
+        position manager can list the token ids an address owns. v4's cannot — it is not
+        ERC721Enumerable, so no contract call answers "which positions does this address hold".
+        The practical answer is to ask a public block explorer for candidate ids and then confirm
+        each one on chain with <code>ownerOf</code>, treating the explorer as a hint rather than a
+        source of truth.
+      </p>
+      <p>
+        The fee amounts need care too. The <code>tokensOwed</code> field stored for a position goes
+        stale the moment it is touched, so the live figure has to be computed from the pool's fee
+        growth accumulators — and on v3 the result is an upper bound, since the pool's own rounding
+        can pay a wei or two less.
+      </p>
+
+      <h2>Doing it with UniClaim</h2>
+      <p>
+        <a href="/">UniClaim</a> is a free tool that does all of the above in the browser:
+      </p>
+      <ol>
+        <li>
+          <strong>Connect your wallet, or paste any address or ENS name</strong> to look first
+          without connecting anything.
+        </li>
+        <li>
+          <strong>It scans 10 chains</strong> — Ethereum, Arbitrum, Optimism, Polygon, Base, BNB
+          Chain, Avalanche, Blast, Celo and Robinhood Chain — and lists every v3 and v4 position with
+          its unclaimed fees, grouped by chain and sorted by value.
+        </li>
+        <li>
+          <strong>Select positions and review.</strong> Before your wallet opens, you see which
+          contract each transaction calls, that the payout goes to your address, what you will
+          receive and what gas costs. The exact transaction is simulated against the chain first.
+        </li>
+        <li>
+          <strong>Sign once per chain.</strong> Every selected position on a chain goes out in one
+          batched transaction.
+        </li>
+      </ol>
+
+      <h2>Is it safe?</h2>
+      <p>
+        The things that make a claiming tool dangerous are token approvals, signed messages and
+        contracts that can redirect funds. UniClaim uses none of them: there is no
+        <code>approve</code>, nothing to sign except the claim itself, and it only calls Uniswap's own
+        position managers — whose claim paths have no recipient field the app could point elsewhere.
+        It runs entirely in your browser with no backend, and the
+        <a href="https://github.com/de-don/uniclaim">source is public</a>, including scripts that check
+        the fee maths against the chain to the wei.
+      </p>
+
+      <h2>Questions</h2>
+      <h3>Does claiming fees close my position?</h3>
+      <p>
+        No. Only the accrued fees move. Your liquidity, range and position stay as they are and keep
+        earning.
+      </p>
+      <h3>Why did I receive WETH instead of ETH?</h3>
+      <p>
+        A v3 pool holds wrapped ETH, and that is what <code>collect</code> pays. v4 pools that use
+        native ETH pay native ETH.
+      </p>
+      <h3>When is claiming not worth it?</h3>
+      <p>
+        When the gas for a transaction is more than the fees it collects. Batching lowers the cost per
+        position, but dust on mainnet can still cost more to claim than it is worth — the review shows
+        the network fee next to the payout, and warns when the fee is larger.
+      </p>
+
+      <p class="cta">
+        <a class="btn btn--primary" href="/">Find your unclaimed Uniswap fees →</a>
+      </p>
+    </main>
+
+    <footer class="foot">
+      <a href="/">UniClaim</a> · <a href="https://github.com/de-don/uniclaim">Source</a> · No contracts of
+      its own · no approvals · no backend
+    </footer>
+
+    <script type="module" src="/src/guide.ts"></script>
+  </body>
+</html>

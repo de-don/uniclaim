@@ -1,0 +1,83 @@
+/* The guide is a static reading page; it shares the app's colours and nothing else. */
+:root {
+  --bg: #0b0b0f;
+  --surface: #14141b;
+  --border: #26262f;
+  --text: #f2f2f5;
+  --muted: #8b8b9a;
+  --accent: #ff007a;
+
+  color-scheme: dark;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  background-image: radial-gradient(900px 500px at 50% -10%, rgba(255, 0, 122, 0.12), transparent 70%);
+  background-repeat: no-repeat;
+}
+
+a { color: var(--accent); }
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.brand { color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; }
+.brand__mark { color: var(--accent); }
+
+.btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.article { max-width: 720px; margin: 0 auto; padding: 48px 24px 32px; line-height: 1.7; }
+.kicker { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: 0.02em; margin: 0 0 8px; }
+h1 { font-size: 38px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 20px; }
+h2 { font-size: 24px; margin: 44px 0 12px; letter-spacing: -0.01em; }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+p, li { color: #c9c9d3; font-size: 16px; }
+.lede { font-size: 18px; color: var(--muted); }
+ol { padding-left: 22px; }
+li { margin-bottom: 10px; }
+strong { color: var(--text); }
+code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 14px;
+  color: var(--text);
+}
+.cta { margin-top: 40px; text-align: center; }
+
+.foot {
+  border-top: 1px solid var(--border);
+  padding: 20px 16px 28px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.foot a { color: var(--muted); }
+
+@media (max-width: 720px) {
+  .article { padding: 28px 16px 24px; }
+  h1 { font-size: 28px; }
+  h2 { font-size: 21px; }
+}
