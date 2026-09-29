@@ -3,22 +3,14 @@ import { useState, type FormEvent } from 'react'
 import { CHAINS } from '../config/chains'
 import { REPO_URL } from '../config/links'
 import type { WatchStatus } from '../hooks/useWatchedAddress'
+import { CHAIN_COUNT, FAQ, GUIDE_PATH, HERO, STEPS } from '../content/landing'
 import { hasWalletConnect } from '../wagmi'
 
-const STEPS = [
-  {
-    title: 'Connect your wallet',
-    text: 'Nothing is signed. Connecting only tells the app which address to look up.',
-  },
-  {
-    title: 'We scan every chain',
-    text: `Your v3 and v4 positions are read straight from the contracts on ${CHAINS.length} chains, and the unclaimed fees are computed from live pool state.`,
-  },
-  {
-    title: 'Check it, then claim in one transaction',
-    text: 'Before your wallet opens you see the contract, the payout and the fee, simulated against the chain. Then every position on a chain goes out as one batched call.',
-  },
-]
+// The count in the copy is a literal so vite.config.ts can load the copy
+// outside the browser; this keeps it honest when a chain is added or removed.
+if (import.meta.env.DEV && CHAINS.length !== CHAIN_COUNT) {
+  console.warn(`content/landing.ts says ${CHAIN_COUNT} chains, config has ${CHAINS.length}`)
+}
 
 type Props = {
   onOpenInfo: (tab: 'how' | 'security' | 'faq') => void
@@ -37,19 +29,16 @@ export function Landing({ onOpenInfo, onLookup, lookupStatus, lookupError, looku
     onLookup(draft)
   }
 
-  // The headline and lede below are mirrored as static markup in index.html so
-  // crawlers and slow connections see them before the bundle loads. Change them
-  // in both places.
+  // The build writes the same hero, steps and questions into index.html as
+  // static markup, from the same module, for crawlers and slow connections.
   return (
     <div className="landing">
       <h1 className="landing__title">
-        Claim fees from <span className="accent">every position</span> in one transaction
+        {HERO.before}
+        <span className="accent">{HERO.accent}</span>
+        {HERO.after}
       </h1>
-      <p className="landing__lede">
-        UniClaim finds all of your Uniswap v3 and v4 positions, shows the fees you have earned but
-        never collected, and claims them in a batch — one transaction per chain instead of one per
-        position.
-      </p>
+      <p className="landing__lede">{HERO.lede}</p>
 
       <ol className="steps">
         {STEPS.map((step, i) => (
@@ -117,6 +106,23 @@ export function Landing({ onOpenInfo, onLookup, lookupStatus, lookupError, looku
           How that works
         </button>
       </p>
+
+      <section className="landing__faq" aria-labelledby="landing-faq">
+        <h2 id="landing-faq" className="landing__faq-title">
+          Questions
+        </h2>
+        {FAQ.map((item) => (
+          <details key={item.q} className="landing__qa">
+            <summary>{item.q}</summary>
+            <p>{item.a}</p>
+          </details>
+        ))}
+        <p className="landing__guide">
+          <a className="link" href={GUIDE_PATH}>
+            Guide: how to collect Uniswap fees from multiple positions at once →
+          </a>
+        </p>
+      </section>
     </div>
   )
 }

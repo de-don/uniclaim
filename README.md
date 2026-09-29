@@ -275,6 +275,8 @@ src/
   hooks/           all-chain scanning and background refresh, claiming, address lookup
   components/      landing, chain group, position row, summary, info panel, claim review,
                    claim receipt, rolling numbers, dev preview harness
+  content/         landing copy (hero, steps, questions), shared with the static build
+guides/            plain static articles, readable without JavaScript
 scripts/
   verify-fees.ts   v3 ground-truth check against the chain
   verify-v4.ts     v4 decoding, fee and claim-encoding checks
@@ -371,6 +373,24 @@ nothing needs filling in by hand:
 
 The footer links the exact commit the page was built from (`VERCEL_GIT_COMMIT_SHA`,
 or `GITHUB_SHA` on Pages), so "this site runs the public source" is checkable.
+
+### Search
+
+The app is a single page that React renders, which on its own leaves a crawler
+very little to read. Two things make up for it:
+
+- The landing copy — headline, steps and the questions people search for — lives
+  in `src/content/landing.ts`. The React landing renders it, and a Vite plugin
+  writes the same text into `index.html` as static markup, with `FAQPage`
+  structured data. One source, so the static page cannot drift from the app.
+- `guides/` holds plain static pages built as extra Vite entries, such as
+  `/guides/collect-uniswap-fees-multiple-positions`, written for the queries a
+  tool like this is found by. The only script on them is page-level analytics.
+  A copy published elsewhere (Medium, dev.to, Mirror) should set its canonical
+  URL to the page here, so the search credit comes back to this domain.
+
+`sitemap.xml` lists both pages; add new guides there and to the `rewrites` in
+`vercel.json` (the catch-all SPA rewrite skips `/guides/`).
 
 The canonical host is `https://uniclaim.org`, hardcoded in `index.html`
 (canonical link, Open Graph, JSON-LD), `public/robots.txt` and
