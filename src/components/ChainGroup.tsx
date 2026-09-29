@@ -4,6 +4,7 @@ import { hasFees } from '../lib/links'
 import type { Position } from '../lib/types'
 import { batchCount, type ClaimState } from '../hooks/useClaim'
 import { PositionRow } from './PositionRow'
+import { RollingNumber } from './RollingNumber'
 
 type Props = {
   config: ChainConfig
@@ -76,7 +77,9 @@ export function ChainGroup({
           {claimable.length} of {positions.length} with fees
           {txCount > 1 && ` · ${txCount} transactions`}
         </span>
-        <span className="group__usd">{formatUsd(totalUsd)}</span>
+        <span className="group__usd">
+          <RollingNumber value={formatUsd(totalUsd)} />
+        </span>
 
         {!readOnly && (
           <div className="group__actions">
