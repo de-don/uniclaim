@@ -18,7 +18,11 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/guides/:slug",
+      "destination": "/guides/:slug/index.html"
+    },
+    {
+      "source": "/((?!assets/|guides/|.*\\.[a-zA-Z0-9]+$).*)",
       "destination": "/index.html"
     }
   ],

@@ -102,6 +102,33 @@ body {
 .lookup__input:focus { outline: none; border-color: var(--accent); }
 .lookup__error { color: var(--red); font-size: 13px; margin: 0; }
 .lookup__ok { color: var(--green); font-size: 13px; margin: 0; }
+
+.landing__faq { margin: 48px 0 0; text-align: left; }
+.landing__faq-title { font-size: 20px; margin: 0 0 14px; text-align: center; }
+.landing__qa {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.landing__qa summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.landing__qa summary::-webkit-details-marker { display: none; }
+.landing__qa summary::after { content: '+'; color: var(--muted); font-weight: 400; font-size: 17px; flex: none; }
+.landing__qa[open] summary::after { content: '−'; }
+.landing__qa summary:hover { background: var(--surface-hi); }
+.landing__qa p { margin: 0; padding: 0 16px 14px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.landing__guide { text-align: center; font-size: 14px; margin: 18px 0 0; }
 /* ---------- summary ---------- */
 .summary {
   display: grid;

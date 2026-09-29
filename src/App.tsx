@@ -10,6 +10,7 @@ import { Landing } from './components/Landing'
 import { Summary } from './components/Summary'
 import { CHAIN_BY_ID, CHAINS } from './config/chains'
 import { REPO_URL, SECURITY_URL } from './config/links'
+import { GUIDE_PATH } from './content/landing'
 import { V4_CHAINS } from './config/v4'
 import { useClaim, type ClaimResult } from './hooks/useClaim'
 import { usePositions } from './hooks/usePositions'
@@ -439,6 +440,7 @@ export default function App() {
         <a href={SECURITY_URL} target="_blank" rel="noreferrer">
           Report a vulnerability
         </a>
+        <a href={GUIDE_PATH}>Guide: collecting from many positions</a>
         <span className="sitefoot__claims">No contracts of its own · no approvals · no backend</span>
       </footer>
 
