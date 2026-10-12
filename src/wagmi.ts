@@ -11,7 +11,7 @@ function transportFor(chainId: number, rpcUrls: string[]) {
   const override = import.meta.env[`VITE_RPC_${chainId}`] as string | undefined
   const urls = override ? [override, ...rpcUrls] : rpcUrls
   return fallback(
-    urls.map((url) => http(url, { retryCount: 2, retryDelay: 300, timeout: 20_000 })),
+    urls.map((url) => http(url, { retryCount: 1, retryDelay: 300, timeout: 8_000 })),
     { rank: false, retryCount: 1 },
   )
 }
