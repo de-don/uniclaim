@@ -144,9 +144,9 @@ export const CHAINS: ChainConfig[] = [
     uniswapSlug: 'robinhood',
     positionManager: '0x73991a25c818bf1f1128deaab1492d45638de0d3',
     rpcUrls: [
-      'https://rpc.ordofi.network',
       'https://rpc.mainnet.chain.robinhood.com',
       'https://robinhood-rpc.publicnode.com',
+      'https://rpc.ordofi.network',
     ],
     llamaKey: 'robinhood',
     color: '#00c805',
